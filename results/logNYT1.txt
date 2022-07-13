@@ -1,0 +1,1111 @@
+(NER) C:\Users\User\Documents\GITModel\WeSHClass-master>python main.py --dataset "nyt" --sup_source "keywords" --beta 50 --maxiter "500,500" --gamma 0.9 --block_level 1 --pseudo "lstm" --with_eval "All"
+Namespace(alpha=0.2, batch_size=256, beta=50, block_level=1, dataset='nyt', delta=0.1, gamma=0.9, max_level=None, maxiter='500,500', pretrain_epochs=None, pseudo='lstm', sup_source='keywords', update_interval=None, with_eval='All')
+Total number of classes: 31
+ROOT (-1)       politics,arts,business,science,sports
+politics (0)    federal_budget,surveillance,the_affordable_care_act,immigration,law_enforcement,gay_rights,gun_control,military,abortion
+federal_budget (5)
+surveillance (6)
+the_affordable_care_act (7)
+immigration (8)
+law_enforcement (9)
+gay_rights (10)
+gun_control (11)
+military (12)
+abortion (13)
+arts (1)        dance,television,music,movies
+dance (14)
+television (15)
+music (16)
+movies (17)
+business (2)    stocks_and_bonds,energy_companies,economy,international_business
+stocks_and_bonds (18)
+energy_companies (19)
+economy (20)
+international_business (21)
+science (3)     cosmos,environment
+cosmos (22)
+environment (23)
+sports (4)      hockey,basketball,tennis,golf,football,baseball,soccer
+hockey (24)
+basketball (25)
+tennis (26)
+golf (27)
+football (28)
+baseball (29)
+soccer (30)
+
+
+### Dataset statistics - Documents: ###
+Document max length: 6680 (words)
+Document average length: 768.6299977065974 (words)
+Document length std: 336.24848625154004 (words)
+Defined maximum document length: 1500 (words)
+Fraction of truncated documents: 0.009785184618912927
+Vocabulary Size: 105157
+
+### Dataset statistics - Sentences: ###
+Sentence max length: 227 (words)
+Sentence average length: 24.24098582895263 (words)
+Defined maximum sentence length: 40 (words)
+Fraction of truncated sentences: 0.10561965416012406
+Sequences shape: (9531872, 40)
+
+### Supervision type: Class-related Keywords ###
+x shape: (13081, 1500)
+
+### Proceeding level 0 ###
+Nodes: ['ROOT']
+
+### Input preparation ###
+Training embedding for node ROOT
+Loading existing Word2Vec embedding ./nyt\embedding_ROOT.p...
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_1"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_1 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm (LSTM)                  (None, 39, 100)           80400
+_________________________________________________________________
+lstm_1 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_2 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+Final expansion size t = 3
+['cuts', 'budget', 'debt']
+['surveillance', 'intelligence', 'snowden']
+['insurance', 'coverage', 'medicaid']
+['immigrants', 'immigration', 'citizenship']
+['death', 'judge', 'prosecutors']
+['gay', 'marriage', 'same-sex']
+['gun', 'guns', 'rifle']
+['military', 'pentagon', 'combat']
+['abortion', 'abortions', 'clinics']
+
+
+weight: [0.14814815 0.25925926 0.07407407 0.14814815 0.03703704 0.11111111
+ 0.03703704 0.11111111 0.07407407]
+kappa: [2.82595695e+02 2.88886495e+02 5.73757381e+02 3.76948663e+02
+ 1.00000000e+10 4.20132722e+02 1.00000000e+10 5.45151247e+02
+ 3.77666849e+02]
+['ballet', 'dancers', 'dancer']
+['episode', 'viewers', 'episodes']
+['album', 'songs', 'orchestra']
+['hollywood', 'directed', 'oscar']
+
+
+weight: [0.33333333 0.33333333 0.16666667 0.16666667]
+kappa: [244.64691613 303.91014845 455.35773956 276.68863077]
+['stocks', 'dow', 'points']
+['natural', 'power', 'electricity']
+['fed', 'economists', 'economist']
+['china', 'union', 'euro']
+weight: [0.16666667 0.25       0.33333333 0.25      ]
+kappa: [184.20523846 337.82188023 270.01941823 246.71997946]
+['spacecraft', 'sun', 'kepler']
+['climate', 'wildlife', 'fish']
+weight: [0.5 0.5]
+kappa: [269.05010271 375.99381647]
+['period', 'rangers', 'bruins']
+['rebounds', 'nets', 'knicks']
+['wimbledon', 'tennis', 'slam']
+['golf', 'tour', 'pga']
+['yards', 'quarterback', 'touchdown']
+['innings', 'inning', 'yankees']
+['cup', 'champions', 'united']
+weight: [0.04761905 0.0952381  0.28571429 0.14285714 0.23809524 0.0952381
+ 0.0952381 ]
+kappa: [1.00000000e+10 2.23377788e+02 2.07815377e+02 4.14166448e+02
+ 2.88390718e+02 7.47665750e+02 5.75382475e+02]
+Finished vMF distribution fitting.
+Pseudodocs generation for class politics...
+Pseudodocs generation time: 113.25s
+Pseudodocs generation for class arts...
+Pseudodocs generation time: 114.42s
+Pseudodocs generation for class business...
+Pseudodocs generation time: 129.32s
+Pseudodocs generation for class science...
+Pseudodocs generation time: 133.52s
+Pseudodocs generation for class sports...
+Pseudodocs generation time: 135.47s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node ROOT
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+1/1 [==============================] - 3s 3s/step - loss: 0.9480
+Epoch 2/30
+1/1 [==============================] - 1s 1s/step - loss: 0.9472
+Epoch 3/30
+1/1 [==============================] - 1s 1s/step - loss: 0.9460
+Epoch 4/30
+1/1 [==============================] - 1s 1s/step - loss: 0.9445
+Epoch 5/30
+1/1 [==============================] - 1s 1s/step - loss: 0.9427
+Epoch 6/30
+1/1 [==============================] - 1s 1s/step - loss: 0.9409
+Epoch 7/30
+1/1 [==============================] - 1s 988ms/step - loss: 0.9391
+Epoch 8/30
+1/1 [==============================] - 1s 938ms/step - loss: 0.9371
+Epoch 9/30
+1/1 [==============================] - 1s 929ms/step - loss: 0.9352
+Epoch 10/30
+1/1 [==============================] - 1s 789ms/step - loss: 0.9331
+Epoch 11/30
+1/1 [==============================] - 1s 806ms/step - loss: 0.9311
+Epoch 12/30
+1/1 [==============================] - 1s 827ms/step - loss: 0.9289
+Epoch 13/30
+1/1 [==============================] - 1s 810ms/step - loss: 0.9267
+Epoch 14/30
+1/1 [==============================] - 1s 895ms/step - loss: 0.9245
+Epoch 15/30
+1/1 [==============================] - 1s 896ms/step - loss: 0.9222
+Epoch 16/30
+1/1 [==============================] - 1s 866ms/step - loss: 0.9198
+Epoch 17/30
+1/1 [==============================] - 1s 920ms/step - loss: 0.9173
+Epoch 18/30
+1/1 [==============================] - 1s 924ms/step - loss: 0.9146
+Epoch 19/30
+1/1 [==============================] - 1s 856ms/step - loss: 0.9119
+Epoch 20/30
+1/1 [==============================] - 1s 914ms/step - loss: 0.9090
+Epoch 21/30
+1/1 [==============================] - 1s 926ms/step - loss: 0.9060
+Epoch 22/30
+1/1 [==============================] - 1s 937ms/step - loss: 0.9029
+Epoch 23/30
+1/1 [==============================] - 1s 935ms/step - loss: 0.8996
+Epoch 24/30
+1/1 [==============================] - 1s 913ms/step - loss: 0.8962
+Epoch 25/30
+1/1 [==============================] - 1s 941ms/step - loss: 0.8924
+Epoch 26/30
+1/1 [==============================] - 1s 945ms/step - loss: 0.8886
+Epoch 27/30
+1/1 [==============================] - 1s 932ms/step - loss: 0.8844
+Epoch 28/30
+1/1 [==============================] - 1s 940ms/step - loss: 0.8800
+Epoch 29/30
+1/1 [==============================] - 1s 939ms/step - loss: 0.8753
+Epoch 30/30
+1/1 [==============================] - 1s 929ms/step - loss: 0.8704
+Pretraining time: 29.81s
+
+### Phase 3: self-training ###
+Update interval: 30
+
+Iter 0:
+f1_macro = 0.33303, f1_micro = 0.3778 @ level 1
+f1_macro = 0.33303, f1_micro = 0.3778 @ all classes
+
+Iter 30:
+f1_macro = 0.33408, f1_micro = 0.37872 @ level 1
+f1_macro = 0.33408, f1_micro = 0.37872 @ all classes
+Fraction of documents with label changes: 0.161 %
+
+Iter 60:
+f1_macro = 0.33458, f1_micro = 0.37902 @ level 1
+f1_macro = 0.33458, f1_micro = 0.37902 @ all classes
+Fraction of documents with label changes: 0.138 %
+
+Iter 90:
+f1_macro = 0.33484, f1_micro = 0.37933 @ level 1
+f1_macro = 0.33484, f1_micro = 0.37933 @ all classes
+Fraction of documents with label changes: 0.054 %
+
+Fraction: 0.054 % < tol: 0.1 %
+Reached tolerance threshold. Self-training terminated.
+Final model saved to: ./results/nyt/keywords/level_0/final.h5
+Self-training time: 167.26s
+
+### Proceeding level 1 ###
+Nodes: ['politics', 'arts', 'business', 'science', 'sports']
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_5"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_3 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_2 (LSTM)                (None, 39, 100)           80400
+_________________________________________________________________
+lstm_3 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_5 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+Final expansion size t = 3
+['cuts', 'budget', 'debt']
+
+
+weight: [1.]
+kappa: [420.13272182]
+['surveillance', 'intelligence', 'snowden']
+
+
+
+weight: [1.]
+kappa: [407.78756723]
+['insurance', 'coverage', 'medicaid']
+weight: [1.]
+kappa: [545.15124715]
+['immigrants', 'immigration', 'citizenship']
+weight: [1.]
+kappa: [345.12091102]
+['death', 'judge', 'prosecutors']
+weight: [1.]
+kappa: [303.34224693]
+['gay', 'marriage', 'same-sex']
+weight: [1.]
+kappa: [696.11766873]
+['gun', 'guns', 'rifle']
+weight: [1.]
+kappa: [376.6760087]
+['military', 'pentagon', 'combat']
+weight: [1.]
+kappa: [370.24738666]
+['abortion', 'abortions', 'clinics']
+weight: [1.]
+kappa: [583.27249527]
+Finished vMF distribution fitting.
+Pseudodocs generation for class federal_budget...
+Pseudodocs generation time: 126.26s
+Pseudodocs generation for class surveillance...
+Pseudodocs generation time: 129.09s
+Pseudodocs generation for class the_affordable_care_act...
+Pseudodocs generation time: 127.01s
+Pseudodocs generation for class immigration...
+Pseudodocs generation time: 125.33s
+Pseudodocs generation for class law_enforcement...
+Pseudodocs generation time: 125.80s
+Pseudodocs generation for class gay_rights...
+Pseudodocs generation time: 129.68s
+Pseudodocs generation for class gun_control...
+Pseudodocs generation time: 134.64s
+Pseudodocs generation for class military...
+Pseudodocs generation time: 133.28s
+Pseudodocs generation for class abortion...
+Pseudodocs generation time: 133.37s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node politics
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+2/2 [==============================] - 2s 675ms/step - loss: 1.3598
+Epoch 2/30
+2/2 [==============================] - 2s 730ms/step - loss: 1.3590
+Epoch 3/30
+2/2 [==============================] - 2s 723ms/step - loss: 1.3576
+Epoch 4/30
+2/2 [==============================] - 2s 723ms/step - loss: 1.3561
+Epoch 5/30
+2/2 [==============================] - 2s 718ms/step - loss: 1.3542
+Epoch 6/30
+2/2 [==============================] - 2s 769ms/step - loss: 1.3521
+Epoch 7/30
+2/2 [==============================] - 2s 745ms/step - loss: 1.3498
+Epoch 8/30
+2/2 [==============================] - 2s 748ms/step - loss: 1.3469
+Epoch 9/30
+2/2 [==============================] - 2s 742ms/step - loss: 1.3440
+Epoch 10/30
+2/2 [==============================] - 2s 726ms/step - loss: 1.3404
+Epoch 11/30
+2/2 [==============================] - 2s 724ms/step - loss: 1.3360
+Epoch 12/30
+2/2 [==============================] - 2s 707ms/step - loss: 1.3311
+Epoch 13/30
+2/2 [==============================] - 2s 709ms/step - loss: 1.3255
+Epoch 14/30
+2/2 [==============================] - 2s 695ms/step - loss: 1.3191
+Epoch 15/30
+2/2 [==============================] - 2s 704ms/step - loss: 1.3122
+Epoch 16/30
+2/2 [==============================] - 2s 706ms/step - loss: 1.3038
+Epoch 17/30
+2/2 [==============================] - 2s 699ms/step - loss: 1.2945
+Epoch 18/30
+2/2 [==============================] - 2s 711ms/step - loss: 1.2830
+Epoch 19/30
+2/2 [==============================] - 2s 720ms/step - loss: 1.2706
+Epoch 20/30
+2/2 [==============================] - 2s 715ms/step - loss: 1.2556
+Epoch 21/30
+2/2 [==============================] - 2s 723ms/step - loss: 1.2388
+Epoch 22/30
+2/2 [==============================] - 2s 734ms/step - loss: 1.2190
+Epoch 23/30
+2/2 [==============================] - 2s 738ms/step - loss: 1.1958
+Epoch 24/30
+2/2 [==============================] - 2s 757ms/step - loss: 1.1694
+Epoch 25/30
+2/2 [==============================] - 2s 777ms/step - loss: 1.1382
+Epoch 26/30
+2/2 [==============================] - 2s 780ms/step - loss: 1.1020
+Epoch 27/30
+2/2 [==============================] - 2s 781ms/step - loss: 1.0641
+Epoch 28/30
+2/2 [==============================] - 2s 758ms/step - loss: 1.0221
+Epoch 29/30
+2/2 [==============================] - 2s 763ms/step - loss: 0.9763
+Epoch 30/30
+2/2 [==============================] - 2s 782ms/step - loss: 0.9285
+Pretraining time: 51.82s
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_8"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_5 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_4 (LSTM)                (None, 39, 100)           80400
+_________________________________________________________________
+lstm_5 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_8 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+current_sz: 4
+current_sz: 5
+current_sz: 6
+current_sz: 7
+current_sz: 8
+current_sz: 9
+current_sz: 10
+current_sz: 11
+current_sz: 12
+current_sz: 13
+current_sz: 14
+current_sz: 15
+current_sz: 16
+current_sz: 17
+Final expansion size t = 17
+['ballet', 'dancer', 'dancers', 'dance', 'choreographer', 'balanchine', 'classical', 'ballerina', 'dances', 'conductor', 'contemporary', 'choreographed', 'opera', 'choreographers', 'soloist', 'repertory', 'composer']
+
+
+
+weight: [1.]
+kappa: [336.59889543]
+['episodes', 'episode', 'viewers', 'hd', 'documentaries', 'pbs', 'specials', 'sequels', 'reruns', 'archives', 'recordings', 'hbo', 'aired', 'sitcoms', 'live-action', 'prime-time', 'amc']
+
+
+weight: [1.]
+kappa: [281.65515456]
+['songs', 'album', 'band', 'ensemble', 'music', 'musical', 'beethoven', 'festival', 'shostakovich', 'symphonic', 'orchestra', 'albums', 'productions', 'mixtape', 'lyric', 'libretto', 'violin']
+weight: [1.]
+kappa: [299.56528958]
+['oscar', 'hollywood', 'foreign-language', 'ejiofor', 'redford', 'screenplay', 'nickelodeon', 'chiwetel', 'cher', 'argo', 'slumdog', 'mtv', 'ronk', 'batman', 'hard-boiled', 'rutles', 'korine']
+weight: [1.]
+kappa: [358.79722864]
+Finished vMF distribution fitting.
+Pseudodocs generation for class dance...
+Pseudodocs generation time: 136.88s
+Pseudodocs generation for class television...
+Pseudodocs generation time: 140.66s
+Pseudodocs generation for class music...
+Pseudodocs generation time: 142.83s
+Pseudodocs generation for class movies...
+Pseudodocs generation time: 136.51s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node arts
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+1/1 [==============================] - 2s 2s/step - loss: 0.7985
+Epoch 2/30
+1/1 [==============================] - 1s 859ms/step - loss: 0.7978
+Epoch 3/30
+1/1 [==============================] - 1s 906ms/step - loss: 0.7965
+Epoch 4/30
+1/1 [==============================] - 1s 923ms/step - loss: 0.7951
+Epoch 5/30
+1/1 [==============================] - 1s 932ms/step - loss: 0.7934
+Epoch 6/30
+1/1 [==============================] - 1s 928ms/step - loss: 0.7915
+Epoch 7/30
+1/1 [==============================] - 1s 928ms/step - loss: 0.7897
+Epoch 8/30
+1/1 [==============================] - 1s 893ms/step - loss: 0.7877
+Epoch 9/30
+1/1 [==============================] - 1s 896ms/step - loss: 0.7856
+Epoch 10/30
+1/1 [==============================] - 1s 863ms/step - loss: 0.7834
+Epoch 11/30
+1/1 [==============================] - 1s 851ms/step - loss: 0.7812
+Epoch 12/30
+1/1 [==============================] - 1s 841ms/step - loss: 0.7790
+Epoch 13/30
+1/1 [==============================] - 1s 828ms/step - loss: 0.7767
+Epoch 14/30
+1/1 [==============================] - 1s 828ms/step - loss: 0.7744
+Epoch 15/30
+1/1 [==============================] - 1s 814ms/step - loss: 0.7719
+Epoch 16/30
+1/1 [==============================] - 1s 805ms/step - loss: 0.7694
+Epoch 17/30
+1/1 [==============================] - 1s 818ms/step - loss: 0.7667
+Epoch 18/30
+1/1 [==============================] - 1s 809ms/step - loss: 0.7639
+Epoch 19/30
+1/1 [==============================] - 1s 795ms/step - loss: 0.7609
+Epoch 20/30
+1/1 [==============================] - 1s 800ms/step - loss: 0.7578
+Epoch 21/30
+1/1 [==============================] - 1s 786ms/step - loss: 0.7544
+Epoch 22/30
+1/1 [==============================] - 1s 770ms/step - loss: 0.7508
+Epoch 23/30
+1/1 [==============================] - 1s 777ms/step - loss: 0.7469
+Epoch 24/30
+1/1 [==============================] - 1s 770ms/step - loss: 0.7426
+Epoch 25/30
+1/1 [==============================] - 1s 763ms/step - loss: 0.7382
+Epoch 26/30
+1/1 [==============================] - 1s 765ms/step - loss: 0.7334
+Epoch 27/30
+1/1 [==============================] - 1s 771ms/step - loss: 0.7282
+Epoch 28/30
+1/1 [==============================] - 1s 743ms/step - loss: 0.7227
+Epoch 29/30
+1/1 [==============================] - 1s 745ms/step - loss: 0.7167
+Epoch 30/30
+1/1 [==============================] - 1s 750ms/step - loss: 0.7102
+Pretraining time: 25.71s
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_11"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_7 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_6 (LSTM)                (None, 39, 100)           80400
+_________________________________________________________________
+lstm_7 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_11 (Dense)             (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+current_sz: 4
+current_sz: 5
+current_sz: 6
+current_sz: 7
+current_sz: 8
+current_sz: 9
+current_sz: 10
+current_sz: 11
+current_sz: 12
+current_sz: 13
+current_sz: 14
+current_sz: 15
+current_sz: 16
+current_sz: 17
+current_sz: 18
+current_sz: 19
+current_sz: 20
+current_sz: 21
+current_sz: 22
+current_sz: 23
+current_sz: 24
+current_sz: 25
+current_sz: 26
+current_sz: 27
+current_sz: 28
+current_sz: 29
+current_sz: 30
+current_sz: 31
+current_sz: 32
+current_sz: 33
+current_sz: 34
+current_sz: 35
+current_sz: 36
+current_sz: 37
+current_sz: 38
+current_sz: 39
+current_sz: 40
+current_sz: 41
+Final expansion size t = 41
+['dow', 'stocks', 'industrials', 'nasdaq', 'indexes', 'composite', 'nominal', 'inventories', 'yields', 'gainers', 'profits', '802', 'index', "economists'", '500-stock', 'pultegroup', 'ftse', 'gainer', 'decliners', 'rupee', 'earnings', 'stock', 'cents', 'yield', 'year-over-year', 'gains', 'msci', 'alcoa', 'factset', '500-', 'year-on-year', 'industrywide', 'one-tenth', "analysts'", 'cac', 'fast-', 'lennar', '767', '000-unit', 'inflation-adjusted', 'october-december']
+
+weight: [1.]
+kappa: [340.73550178]
+['electricity', 'natural', 'power', 'low-carbon', 'coal-fired', 'energy', '-fired', 'renewable', 'fuel', '-burning', 'generators', 'combustion', 'cleaner', 'fuels', 'thermoelectric', 'diesel', 'coal', 'polluters', 'liquefied', 'greenhouse', 'hydroelectric', 'flaring', 'smokestacks', 'gas', 'hydropower', 'feedstock', '-powered', 'hydrocarbons', '-free', 'nanotubes', 'grids', 'uranium', 'ethanol', 'warheads', 'biofuels', 'biofuel', 'zero-', 'turbines', 'plutonium', 'dirtier', 'coking']
+
+
+weight: [1.]
+kappa: [444.2153113]
+['economists', 'fed', 'macroeconomic', 'advisors', 'economic', 'mesirow', 'naroff', 'markit', 'ashworth', 'economist', 'goldman', 'inflation', 'swonk', 'investors', 'analysts', 'lavorgna', 'equities', 'mortgage-backed', 'sachs', 'forecasting', 'growth', 'millan', 'commerzbank', 'macroeconomics', 'consumer', 'dales', 'muni', 'forecasts', 'carsten', 'btig', 'monetary', 'schmieding', 'forecasters', 'economy', 'bernanke', 'suisse', 'brzeski', 'bundesbank', 'rdq', 'slowdown', 'kann']
+weight: [1.]
+kappa: [254.45630376]
+['bloc', 'euro', 'union', '27-nation', 'cyprus', 'currency', 'troika', 'china', 'greece', 'indonesia', 'european', 'europe', 'overcapacity', 'countries', 'catalonia', 'ministers', '28-nation', 'exporters', 'macau', 'repsol', 'cypriot', 'faroese', '17-nation', 'tariffs', 'eads', "manufacturers'", 'economies', 'libyan', 'britain', 'bailouts', 'exports', 'ministry', 'eurogroup', 'volkswagen', "airlines'", 'chevron', 'gazprom', 'peripheral', 'faroes', 'pescanova', 'audiovisual']
+weight: [1.]
+kappa: [288.90387081]
+Finished vMF distribution fitting.
+Pseudodocs generation for class stocks_and_bonds...
+Pseudodocs generation time: 151.28s
+Pseudodocs generation for class energy_companies...
+Pseudodocs generation time: 157.98s
+Pseudodocs generation for class economy...
+Pseudodocs generation time: 138.01s
+Pseudodocs generation for class international_business...
+Pseudodocs generation time: 140.05s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node business
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+1/1 [==============================] - 2s 2s/step - loss: 0.7991
+Epoch 2/30
+1/1 [==============================] - 1s 785ms/step - loss: 0.7981
+Epoch 3/30
+1/1 [==============================] - 1s 821ms/step - loss: 0.7966
+Epoch 4/30
+1/1 [==============================] - 1s 809ms/step - loss: 0.7948
+Epoch 5/30
+1/1 [==============================] - 1s 814ms/step - loss: 0.7930
+Epoch 6/30
+1/1 [==============================] - 1s 799ms/step - loss: 0.7911
+Epoch 7/30
+1/1 [==============================] - 1s 792ms/step - loss: 0.7892
+Epoch 8/30
+1/1 [==============================] - 1s 824ms/step - loss: 0.7871
+Epoch 9/30
+1/1 [==============================] - 1s 818ms/step - loss: 0.7851
+Epoch 10/30
+1/1 [==============================] - 1s 810ms/step - loss: 0.7831
+Epoch 11/30
+1/1 [==============================] - 1s 772ms/step - loss: 0.7809
+Epoch 12/30
+1/1 [==============================] - 1s 776ms/step - loss: 0.7788
+Epoch 13/30
+1/1 [==============================] - 1s 784ms/step - loss: 0.7765
+Epoch 14/30
+1/1 [==============================] - 1s 769ms/step - loss: 0.7742
+Epoch 15/30
+1/1 [==============================] - 1s 861ms/step - loss: 0.7717
+Epoch 16/30
+1/1 [==============================] - 1s 957ms/step - loss: 0.7692
+Epoch 17/30
+1/1 [==============================] - 1s 763ms/step - loss: 0.7666
+Epoch 18/30
+1/1 [==============================] - 1s 754ms/step - loss: 0.7638
+Epoch 19/30
+1/1 [==============================] - 1s 748ms/step - loss: 0.7608
+Epoch 20/30
+1/1 [==============================] - 1s 828ms/step - loss: 0.7578
+Epoch 21/30
+1/1 [==============================] - 1s 933ms/step - loss: 0.7545
+Epoch 22/30
+1/1 [==============================] - 1s 886ms/step - loss: 0.7511
+Epoch 23/30
+1/1 [==============================] - 1s 798ms/step - loss: 0.7474
+Epoch 24/30
+1/1 [==============================] - 1s 829ms/step - loss: 0.7435
+Epoch 25/30
+1/1 [==============================] - 1s 858ms/step - loss: 0.7393
+Epoch 26/30
+1/1 [==============================] - 1s 868ms/step - loss: 0.7349
+Epoch 27/30
+1/1 [==============================] - 1s 789ms/step - loss: 0.7296
+Epoch 28/30
+1/1 [==============================] - 1s 891ms/step - loss: 0.7230
+Epoch 29/30
+1/1 [==============================] - 1s 803ms/step - loss: 0.7174
+Epoch 30/30
+1/1 [==============================] - 1s 727ms/step - loss: 0.7113
+Pretraining time: 25.61s
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_14"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_9 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_8 (LSTM)                (None, 39, 100)           80400
+_________________________________________________________________
+lstm_9 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_14 (Dense)             (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+current_sz: 4
+current_sz: 5
+current_sz: 6
+current_sz: 7
+current_sz: 8
+current_sz: 9
+current_sz: 10
+current_sz: 11
+current_sz: 12
+current_sz: 13
+current_sz: 14
+current_sz: 15
+current_sz: 16
+current_sz: 17
+current_sz: 18
+current_sz: 19
+current_sz: 20
+current_sz: 21
+current_sz: 22
+current_sz: 23
+current_sz: 24
+current_sz: 25
+current_sz: 26
+current_sz: 27
+current_sz: 28
+current_sz: 29
+current_sz: 30
+current_sz: 31
+current_sz: 32
+current_sz: 33
+current_sz: 34
+current_sz: 35
+current_sz: 36
+current_sz: 37
+current_sz: 38
+current_sz: 39
+current_sz: 40
+current_sz: 41
+current_sz: 42
+current_sz: 43
+current_sz: 44
+current_sz: 45
+current_sz: 46
+current_sz: 47
+current_sz: 48
+current_sz: 49
+current_sz: 50
+current_sz: 51
+current_sz: 52
+current_sz: 53
+current_sz: 54
+current_sz: 55
+current_sz: 56
+current_sz: 57
+current_sz: 58
+current_sz: 59
+current_sz: 60
+current_sz: 61
+current_sz: 62
+current_sz: 63
+current_sz: 64
+current_sz: 65
+current_sz: 66
+current_sz: 67
+current_sz: 68
+current_sz: 69
+current_sz: 70
+current_sz: 71
+current_sz: 72
+current_sz: 73
+current_sz: 74
+current_sz: 75
+current_sz: 76
+current_sz: 77
+current_sz: 78
+current_sz: 79
+current_sz: 80
+current_sz: 81
+current_sz: 82
+current_sz: 83
+current_sz: 84
+current_sz: 85
+current_sz: 86
+current_sz: 87
+current_sz: 88
+current_sz: 89
+current_sz: 90
+current_sz: 91
+current_sz: 92
+current_sz: 93
+current_sz: 94
+current_sz: 95
+current_sz: 96
+current_sz: 97
+current_sz: 98
+current_sz: 99
+current_sz: 100
+current_sz: 101
+current_sz: 102
+Final expansion size t = 102
+['kepler', 'spacecraft', 'rover', 'ladee', 'mars', 'telescope', 'martian', 'sun', 'comet', 'curiosity', 'ison', 'orbit', '78b', 'earth', 'lunar', 'moon', 'astronomers', 'circling', 'orbiting', 'six-wheel', 'meteor', 'hubble', 'meteorite', 'crater', 'asteroid', 'equator', 'neutrinos', 'saturn', 'voyager', 'ship', 'dragon', 'rocket', 'radiation', 'methane', 'spacex', 'cargo', 'rocks', 'telescopes', 'car-size', 'orbiter', 'turbine', 'detector', 'dust', 'antarctica', 'whillans', 'spaceship', 'sunlight', 'asteroids', 'vostok', 'crust', 'planets', 'payload', 'nasa', 'sediments', 'circulation', 'antarctic', 'habitable', 'primordial', 'cooling', 'spacewalkers', 'shuttles', 'vegetation', 'plume', 'shuttle', 'malfunctioned', 'expedition', 'liftoff', 'sediment', 'debris', 'outer', 'pipes', 'earth-like', 'brakes', 'module', 'planet', 'infrared', 'interstellar', 'plumes', 'galaxies', 'wafting', 'cygnus', 'orbits', 'brightness', 'loops', 'oort', 'migrating', 'geologic', 'tunnels', 'milky', 'melts', 'bombs', 'stove', 'missions', 'underground', 'frog', 'sensors', 'reservoir', 'stainless', 'discovery', 'sensor', 'ammonia', 'neptune']
+
+
+weight: [1.]
+kappa: [296.32394391]
+['wildlife', 'fish', 'climate', 'glaciers', 'agricultural', 'environmental', 'resource', 'pollution', 'conservation', 'subglacial', 'climatic', 'bottlenecks', 'geology', 'impacts', 'topography', 'dams', 'farming', 'onshore', 'forestry', 'planetary', 'renewables', 'geothermal', 'marshes', 'man-made', 'lux', 'fisheries', 'ecology', 'biodiversity', 'forests', 'capitalism', 'meteorological', 'human-caused', 'hydropower', 'transport', 'compounds', 'ozone', 'susitna', 'undersea', 'die-offs', 'groundwater', 'beaufort', 'automation', 'wildfires', 'niches', 'die-off', 'grape', 'proliferation', 'ellsworth', 'alaskan', 'atmospheric', 'chinook', 'aquatic', 'ecological', 'seabed', 'moons', 'geologists', 'chukchi', 'grasslands', 'pollutants', 'coordinates', 'deniers', 'ports', 'tanzania', 'parcel', 'migration', 'conservationists', 'intergovernmental', 'fuels', 'multidrug-resistant', 'expeditions', 'land-based', 'lobster', 'submarines', 'beetle', 'surges', 'ceres', 'balcombe', 'interbreeding', 'sponges', 'corrosion', 'genome-wide', 'mongolian', "carriers'", 'beekeepers', 'mosquito', 'inequities', 'mammal', 'oxides', 'millenniums', 'disasters', 'extraction', 'indigenous', 'daiichi', 'clean-energy', 'nuclear', 'herbicides', 'volcanoes', '-rich', 'bureaucrats', 'microbiology', 'buffer', 'coking']
+
+
+weight: [1.]
+kappa: [375.76225503]
+Finished vMF distribution fitting.
+Pseudodocs generation for class cosmos...
+Pseudodocs generation time: 145.51s
+Pseudodocs generation for class environment...
+Pseudodocs generation time: 134.96s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node science
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+1/1 [==============================] - 1s 1s/step - loss: 0.3682
+Epoch 2/30
+1/1 [==============================] - 0s 356ms/step - loss: 0.3672
+Epoch 3/30
+1/1 [==============================] - 0s 383ms/step - loss: 0.3658
+Epoch 4/30
+1/1 [==============================] - 0s 397ms/step - loss: 0.3640
+Epoch 5/30
+1/1 [==============================] - 0s 412ms/step - loss: 0.3622
+Epoch 6/30
+1/1 [==============================] - 0s 391ms/step - loss: 0.3602
+Epoch 7/30
+1/1 [==============================] - 0s 404ms/step - loss: 0.3582
+Epoch 8/30
+1/1 [==============================] - 0s 399ms/step - loss: 0.3562
+Epoch 9/30
+1/1 [==============================] - 0s 399ms/step - loss: 0.3543
+Epoch 10/30
+1/1 [==============================] - 0s 400ms/step - loss: 0.3521
+Epoch 11/30
+1/1 [==============================] - 0s 395ms/step - loss: 0.3499
+Epoch 12/30
+1/1 [==============================] - 0s 389ms/step - loss: 0.3474
+Epoch 13/30
+1/1 [==============================] - 0s 388ms/step - loss: 0.3448
+Epoch 14/30
+1/1 [==============================] - 0s 403ms/step - loss: 0.3420
+Epoch 15/30
+1/1 [==============================] - 0s 385ms/step - loss: 0.3389
+Epoch 16/30
+1/1 [==============================] - 0s 383ms/step - loss: 0.3356
+Epoch 17/30
+1/1 [==============================] - 0s 386ms/step - loss: 0.3319
+Epoch 18/30
+1/1 [==============================] - 0s 376ms/step - loss: 0.3280
+Epoch 19/30
+1/1 [==============================] - 0s 381ms/step - loss: 0.3237
+Epoch 20/30
+1/1 [==============================] - 0s 387ms/step - loss: 0.3189
+Epoch 21/30
+1/1 [==============================] - 0s 388ms/step - loss: 0.3137
+Epoch 22/30
+1/1 [==============================] - 0s 398ms/step - loss: 0.3079
+Epoch 23/30
+1/1 [==============================] - 0s 399ms/step - loss: 0.3015
+Epoch 24/30
+1/1 [==============================] - 0s 380ms/step - loss: 0.2945
+Epoch 25/30
+1/1 [==============================] - 0s 384ms/step - loss: 0.2866
+Epoch 26/30
+1/1 [==============================] - 0s 377ms/step - loss: 0.2780
+Epoch 27/30
+1/1 [==============================] - 0s 379ms/step - loss: 0.2685
+Epoch 28/30
+1/1 [==============================] - 0s 383ms/step - loss: 0.2580
+Epoch 29/30
+1/1 [==============================] - 0s 372ms/step - loss: 0.2464
+Epoch 30/30
+1/1 [==============================] - 0s 376ms/step - loss: 0.2337
+Pretraining time: 12.58s
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_17"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_11 (Embedding)     (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_10 (LSTM)               (None, 39, 100)           80400
+_________________________________________________________________
+lstm_11 (LSTM)               (None, 100)               80400
+_________________________________________________________________
+dense_17 (Dense)             (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+current_sz: 4
+current_sz: 5
+current_sz: 6
+current_sz: 7
+current_sz: 8
+current_sz: 9
+current_sz: 10
+current_sz: 11
+current_sz: 12
+current_sz: 13
+current_sz: 14
+current_sz: 15
+current_sz: 16
+current_sz: 17
+current_sz: 18
+current_sz: 19
+current_sz: 20
+current_sz: 21
+current_sz: 22
+current_sz: 23
+current_sz: 24
+current_sz: 25
+current_sz: 26
+current_sz: 27
+current_sz: 28
+current_sz: 29
+current_sz: 30
+current_sz: 31
+current_sz: 32
+current_sz: 33
+current_sz: 34
+current_sz: 35
+current_sz: 36
+current_sz: 37
+current_sz: 38
+current_sz: 39
+current_sz: 40
+current_sz: 41
+current_sz: 42
+current_sz: 43
+current_sz: 44
+current_sz: 45
+current_sz: 46
+current_sz: 47
+current_sz: 48
+current_sz: 49
+current_sz: 50
+current_sz: 51
+current_sz: 52
+current_sz: 53
+current_sz: 54
+current_sz: 55
+current_sz: 56
+current_sz: 57
+current_sz: 58
+current_sz: 59
+current_sz: 60
+current_sz: 61
+current_sz: 62
+current_sz: 63
+current_sz: 64
+current_sz: 65
+current_sz: 66
+current_sz: 67
+current_sz: 68
+current_sz: 69
+current_sz: 70
+Final expansion size t = 70
+['bruins', 'islanders', 'penguins', 'rangers', 'blackhawks', 'flames', 'canucks', 'flyers', 'leafs', 'devils', 'canadiens', 'sabres', 'ottawa', 'capitals', "rangers'", 'period', 'coyotes', "penguins'", "senators'", 'hurricanes', 'oilers', 'outshooting', 'maple', "blackhawks'", 'talbot', "flyers'", "capitals'", 'ducks', 'outshot', 'zuccarello', 'iginla', "wings'", "devils'", 'brassard', 'wings', 'mcdonagh', 'tuukka', 'crosby', 'alfredsson', 'paille', 'sharks', 'winnipeg', "bruins'", 'boychuk', 'rask', 'suter', 'zdeno', 'third-period', 'silfverberg', 'nabokov', 'daugavins', 'avalanche', 'stepan', 'panthers', 'kings', 'lundqvist', 'chara', 'defenseman', 'hossa', 'zetterberg', 'calgary', 'pageau', 'kadri', 'hagelin', 'marchand', '5-on-3', 'pacioretty', 'edmonton', 'bergeron', 'seguin']
+
+
+weight: [1.]
+kappa: [284.36440354]
+['nets', 'knicks', 'pacers', 'nuggets', 'celtics', 'clippers', 'rockets', 'bulls', 'blazers', 'pistons', 'cavaliers', 'garnett', 'sixers', 'wizards', "nets'", 'rebounds', 'bosh', 'lakers', 'frontcourt', 'carmelo', 'hawks', 'grizzlies', 'bobcats', 'stoudemire', "knicks'", 'suns', 'mavericks', 'hibbert', 'huskies', 'pierce', 'bargnani', 'kidd', 'spurs', 'warriors', 'spartans', 'chandler', 'andray', 'harden', 'wildcats', 'blatche', 'jayhawks', 'dwyane', "pacers'", 'hornets', 'felton', 'hawkeyes', 'longhorns', 'raptors', 'buckeyes', 'bucks', 'indiana', 'deng', 'parsons', 'shumpert', 'durant', 'zags', 'shockers', 'timberwolves', 'wolverines', 'hoosiers', 'deron', 'sooners', 'woodson', 'teletovic', 'heat', 'cyclones', 'afflalo', "clippers'", 'bearcats', 'backcourt']
+
+weight: [1.]
+kappa: [217.59452291]
+['wimbledon', 'slam', 'tennis', 'federer', 'grass-court', 'meadows', 'grand-slam', 'grand', 'claycourt', 'serena', 'hingis', 'henin', 'slams', 'steffi', 'quarterfinalist', 'roddick', 'clay-court', 'devvarman', 'garros', 'wta', 'quarter-finalist', 'semifinalist', 'kleybanova', 'bartoli', 'nadal', 'halle', 'semi-finalist', 'grasscourt', 'flushing', 'topspin', 'fibak', 'tournament', 'brisbane', 'stosur', 'seles', 'djokovic', 'paes', 'titlist', 'date-krumm', 'kvitova', 'main-draw', 'kuznetsova', 'tournaments', '77-year', 'amelie', '17th-seeded', 'sharapova', 'doubles', 'fortnight', 'radwanska', 'schiavone', 'errani', 'roland', 'quarterfinals', 'rus', 'sabine', 'quarter-finals', 'barty', 'hard-', 'eastbourne', 'semis', 'mauresmo', 'upsetting', 'auckland', 'hantuchova', 'tune-up', 'rosol', 'belarussian', 'quarterfinal', 'giorgi']
+weight: [1.]
+kappa: [290.64289354]
+['pga', 'tour', 'lpga', 'golf', 'bridgestone', 'symetra', 'q-school', 'greenbrier', 'fedexcup', '95th', 'woods', 'dunhill', 'spieth', 'par-71', 'augusta', 'colonial', '72-hole', 'wentworth', '-sanctioned', 'masters', 'wyndham', 'nabisco', '50-and-over', 'stroke-play', 'nicklaus', 'doral', 'shoprite', 'muirfield', 'wgc', 'invitational', 'furyk', 'snedeker', 'australasia', 'noh', 'ladies', 'merion', 'tours', 'fedex', 'mickelson', '3m', 'wire-to-wire', 'multiple-win', 'hearn', 'inverness', 'baltusrol', 'kuchar', 'event', 'kapalua', 'mcilroy', '16-times', '126-200', 'firestone', '30-man', 'course', 'riviera', "nicklaus'", 'co-sanctioned', 'putters', 'conway', 'sanderson', 'usga', 'harrington', 'tiburon', 'nine-times', '54-hole', 'snead', 'oak', 'westwood', 'en-joie', 'oakmont']
+weight: [1.]
+kappa: [245.85667978]
+['touchdown', 'yards', 'touchdowns', 'interceptions', 'passes', 'interception', 'quarterback', 'lesean', 'newton', 'tds', 'catches', 'rushing', 'punt', 'receptions', 'kaepernick', 'brees', '1-yard', 'glennon', 'mccoy', 'garcon', 'rusher', 'colston', 'receiver', 'fumble', 'mariota', 'fumbled', 'kellen', 'dobson', 'tannehill', 'green-ellis', 'bridgewater', 'hackenberg', 'sack', 'dalton', 'rushers', '100-yard', '4-yard', '14-yard', 'punts', 'knowshon', 'fourth-down', 'boldin', 'goodley', 'jernigan', 'marshawn', 'yard', 'nebrich', 'completions', 'tackles', 'meachem', 'intercepted', 'incompletion', 'mendenhall', "brees'", 'mettenberger', 'third-and', 'lache', 'roethlisberger', "de'anthony", '1-', 'kenbrell', 'outgained', 'third-down', 'alshon', 'yeldon', 'foles', 'desean', "raiders'", 'thompkins', 'seastrunk']
+weight: [1.]
+kappa: [295.29620638]
+['inning', 'innings', 'mariners', 'orioles', 'twins', 'royals', "royals'", 'righty', "marlins'", 'indians', 'pinch-hitting', 'no-decision', "phillies'", 'rays', 'first-inning', 'yankees', 'cosart', 'non-save', 'phillies', 'darvish', 'marlins', 'doubront', 'one-hitter', 'buehrle', 'mets', 'hitless', 'chacin', 'archer', 'angels', 'nightcap', 'magill', 'relievers', 'astros', 'baserunner', 'bonderman', 'one-run', 'smyly', 'gallardo', "braves'", 'masterson', 'latos', 'koji', 'two-hitter', 'aroldis', "brewers'", "padres'", 'hellickson', 'five-hitter', "mariners'", 'shoemaker', 'batters', "indians'", 'hitters', 'cubs', 'braves', 'outpitching', "reds'", 'blanton', 'kazmir', 'pinch-hit', 'withrow', 'four-hitter', 'complete-game', 'nine-inning', 'no-hitters', 'hendriks', 'kipnis', 'strikeouts', 'outdueling', 'unearned']
+weight: [1.]
+kappa: [300.53160074]
+['cup', 'champions', 'libertadores', 'qualification', 'morocco', 'under-17', 'concacaf', 'socceroos', 'under-20', "winners'", 'two-legged', 'fa', 'u-20', 'oceania', 'sarajevo', 'qualifiers', 'europa', 'internationals', 'olimpia', 'bosnia', 'gold-medal', 'under-19', 'herzegovina', 'mineiro', 'cartagena', 'turkish', 'paraguay', 'group-stage', 'hopman', 'fourth-place', 'zambia', '12-man', '32-nation', 'arch-rivals', 'six-team', 'coppa', 'finisher', 'copa', 'medals', 'match-play', 'kaiserslautern', 'three-times', '138th', 'last-16', 'solheim', 'semi-finals', 'united', 'toffees', 'runners-up', 'pyramid', 'treble', "champions'", 'first-leg', 'midlands', 'confederations', 'leicester', 'turin', 'malaysia', 'benfica', 'gattuso', 'captained', 'lisbon', 'ronaldinho', 'honours', 'ghana', 'uruguayans', 'victorious', 'paok', 'eight-team', 'moldova']
+weight: [1.]
+kappa: [336.95676787]
+Finished vMF distribution fitting.
+Pseudodocs generation for class hockey...
+Pseudodocs generation time: 135.68s
+Pseudodocs generation for class basketball...
+Pseudodocs generation time: 138.56s
+Pseudodocs generation for class tennis...
+Pseudodocs generation time: 150.47s
+Pseudodocs generation for class golf...
+Pseudodocs generation time: 155.66s
+Pseudodocs generation for class football...
+Pseudodocs generation time: 155.59s
+Pseudodocs generation for class baseball...
+Pseudodocs generation time: 161.93s
+Pseudodocs generation for class soccer...
+Pseudodocs generation time: 143.32s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node sports
+C:\Users\User\anaconda3\envs\NER\lib\site-packages\tensorflow\python\keras\optimizer_v2\optimizer_v2.py:374: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  warnings.warn(
+
+Pretraining...
+Epoch 1/30
+2/2 [==============================] - 2s 328ms/step - loss: 1.1816
+Epoch 2/30
+2/2 [==============================] - 1s 339ms/step - loss: 1.1795
+Epoch 3/30
+2/2 [==============================] - 1s 339ms/step - loss: 1.1768
+Epoch 4/30
+2/2 [==============================] - 1s 343ms/step - loss: 1.1736
+Epoch 5/30
+2/2 [==============================] - 1s 355ms/step - loss: 1.1704
+Epoch 6/30
+2/2 [==============================] - 1s 342ms/step - loss: 1.1678
+Epoch 7/30
+2/2 [==============================] - 1s 352ms/step - loss: 1.1635
+Epoch 8/30
+2/2 [==============================] - 1s 358ms/step - loss: 1.1603
+Epoch 9/30
+2/2 [==============================] - 1s 352ms/step - loss: 1.1564
+Epoch 10/30
+2/2 [==============================] - 1s 356ms/step - loss: 1.1521
+Epoch 11/30
+2/2 [==============================] - 1s 364ms/step - loss: 1.1465
+Epoch 12/30
+2/2 [==============================] - 1s 369ms/step - loss: 1.1408
+Epoch 13/30
+2/2 [==============================] - 1s 385ms/step - loss: 1.1347
+Epoch 14/30
+2/2 [==============================] - 1s 379ms/step - loss: 1.1279
+Epoch 15/30
+2/2 [==============================] - 1s 389ms/step - loss: 1.1202
+Epoch 16/30
+2/2 [==============================] - 1s 390ms/step - loss: 1.1123
+Epoch 17/30
+2/2 [==============================] - 1s 375ms/step - loss: 1.1046
+Epoch 18/30
+2/2 [==============================] - 1s 383ms/step - loss: 1.0944
+Epoch 19/30
+2/2 [==============================] - 1s 393ms/step - loss: 1.0824
+Epoch 20/30
+2/2 [==============================] - 1s 399ms/step - loss: 1.0676
+Epoch 21/30
+2/2 [==============================] - 2s 408ms/step - loss: 1.0548
+Epoch 22/30
+2/2 [==============================] - 2s 417ms/step - loss: 1.0376
+Epoch 23/30
+2/2 [==============================] - 2s 408ms/step - loss: 1.0179
+Epoch 24/30
+2/2 [==============================] - 2s 400ms/step - loss: 0.9957
+Epoch 25/30
+2/2 [==============================] - 1s 407ms/step - loss: 0.9700
+Epoch 26/30
+2/2 [==============================] - 1s 374ms/step - loss: 0.9391
+Epoch 27/30
+2/2 [==============================] - 1s 386ms/step - loss: 0.9090
+Epoch 28/30
+2/2 [==============================] - 1s 377ms/step - loss: 0.8697
+Epoch 29/30
+2/2 [==============================] - 1s 372ms/step - loss: 0.8302
+Epoch 30/30
+2/2 [==============================] - 1s 383ms/step - loss: 0.7773
+Pretraining time: 42.49s
+
+### Phase 3: self-training ###
+Update interval: 30
+
+Iter 0:
+Number of blocked documents back to level 1: 13081
+f1_macro = 0.33484, f1_micro = 0.37933 @ level 1
+f1_macro = 0.0, f1_micro = 0.0 @ level 2
+f1_macro = 0.05401, f1_micro = 0.26181 @ all classes
+Traceback (most recent call last):
+  File "main.py", line 130, in <module>
+    y_pred = proceed_level(x, sequences, wstc, args, pretrain_epochs, self_lr, decay, update_interval,
+  File "C:\Users\User\Documents\GITModel\WeSHClass-master\utils.py", line 273, in proceed_level
+    y_pred = wstc.fit(
+  File "C:\Users\User\Documents\GITModel\WeSHClass-master\models.py", line 510, in fit
+    x_nonblock = x[nonblock]
+IndexError: arrays used as indices must be of integer (or boolean) type

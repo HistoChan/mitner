@@ -1,0 +1,334 @@
+(NER) C:\Users\User\Documents\GITModel\WeSHClass-master>python main.py --dataset "nyt" --beta 500 --maxiter "5000,5000" --pseudo "lstm"
+Namespace(alpha=0.2, batch_size=256, beta=500, block_level=1, dataset='nyt', delta=0.1, gamma=1.0, max_level=None, maxiter='5000,5000', pretrain_epochs=None, pseudo='lstm', sup_source='keywords', update_interval=None, with_eval='All')
+Total number of classes: 31
+ROOT (-1)       politics,arts,business,science,sports
+politics (0)    federal_budget,surveillance,the_affordable_care_act,immigration,law_enforcement,gay_rights,gun_control,military,abortion
+federal_budget (5)
+surveillance (6)
+the_affordable_care_act (7)
+immigration (8)
+law_enforcement (9)
+gay_rights (10)
+gun_control (11)
+military (12)
+abortion (13)
+arts (1)        dance,television,music,movies
+dance (14)
+television (15)
+music (16)
+movies (17)
+business (2)    stocks_and_bonds,energy_companies,economy,international_business
+stocks_and_bonds (18)
+energy_companies (19)
+economy (20)
+international_business (21)
+science (3)     cosmos,environment
+cosmos (22)
+environment (23)
+sports (4)      hockey,basketball,tennis,golf,football,baseball,soccer
+hockey (24)
+basketball (25)
+tennis (26)
+golf (27)
+football (28)
+baseball (29)
+soccer (30)
+
+
+### Dataset statistics - Documents: ###
+Document max length: 6680 (words)
+Document average length: 768.6299977065974 (words)
+Document length std: 336.24848625154004 (words)
+Defined maximum document length: 1500 (words)
+Fraction of truncated documents: 0.009785184618912927
+Vocabulary Size: 105157
+
+### Dataset statistics - Sentences: ###
+Sentence max length: 227 (words)
+Sentence average length: 24.24098582895263 (words)
+Defined maximum sentence length: 40 (words)
+Fraction of truncated sentences: 0.10561965416012406
+Sequences shape: (9531872, 40)
+
+### Supervision type: Class-related Keywords ###
+x shape: (13081, 1500)
+
+### Proceeding level 0 ###
+Nodes: ['ROOT']
+
+### Input preparation ###
+Training embedding for node ROOT
+Loading existing Word2Vec embedding ./nyt\embedding_ROOT.p...
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_1"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_1 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm (LSTM)                  (None, 39, 100)           80400
+_________________________________________________________________
+lstm_1 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_2 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+Final expansion size t = 3
+['cuts', 'budget', 'debt']
+['surveillance', 'intelligence', 'snowden']
+['insurance', 'coverage', 'medicaid']
+['immigrants', 'immigration', 'citizenship']
+['death', 'judge', 'prosecutors']
+['gay', 'marriage', 'same-sex']
+['gun', 'guns', 'rifle']
+['military', 'pentagon', 'combat']
+['abortion', 'abortions', 'clinics']
+
+weight: [0.14814815 0.11111111 0.11111111 0.11111111 0.07407407 0.18518519
+ 0.11111111 0.11111111 0.03703704]
+kappa: [2.82595695e+02 4.20132722e+02 5.83272495e+02 3.03342247e+02
+ 3.77666849e+02 2.99884984e+02 6.96117669e+02 5.45151247e+02
+ 1.00000000e+10]
+['ballet', 'dancers', 'dancer']
+['episode', 'viewers', 'episodes']
+['album', 'songs', 'orchestra']
+['hollywood', 'directed', 'oscar']
+
+weight: [0.08333333 0.33333333 0.25       0.33333333]
+kappa: [1.00000000e+10 2.44646916e+02 2.88300471e+02 3.03910148e+02]
+['stocks', 'dow', 'points']
+['natural', 'power', 'electricity']
+['fed', 'economists', 'economist']
+['china', 'union', 'euro']
+weight: [0.41666667 0.16666667 0.16666667 0.25      ]
+kappa: [231.63753222 320.6518338  184.20523846 337.82188023]
+['spacecraft', 'sun', 'kepler']
+['climate', 'wildlife', 'fish']
+weight: [0.5 0.5]
+kappa: [375.99381647 269.05010271]
+['period', 'rangers', 'bruins']
+['rebounds', 'nets', 'knicks']
+['wimbledon', 'tennis', 'slam']
+['golf', 'tour', 'pga']
+['yards', 'quarterback', 'touchdown']
+['innings', 'inning', 'yankees']
+['cup', 'champions', 'united']
+weight: [0.0952381  0.04761905 0.04761905 0.23809524 0.19047619 0.0952381
+ 0.28571429]
+kappa: [7.47665750e+02 1.00000000e+10 1.00000000e+10 2.88390718e+02
+ 2.48117831e+02 5.75382475e+02 2.07815377e+02]
+Finished vMF distribution fitting.
+Pseudodocs generation for class politics...
+Pseudodocs generation time: 720.31s
+Pseudodocs generation for class arts...
+Pseudodocs generation time: 809.70s
+Pseudodocs generation for class business...
+Pseudodocs generation time: 811.96s
+Pseudodocs generation for class science...
+Pseudodocs generation time: 835.07s
+Pseudodocs generation for class sports...
+Pseudodocs generation time: 802.18s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node ROOT
+Pretraining...
+Epoch 1/30
+10/10 [==============================] - 10s 921ms/step - loss: 0.9486
+Epoch 2/30
+10/10 [==============================] - 10s 983ms/step - loss: 0.9447
+Epoch 3/30
+10/10 [==============================] - 11s 1s/step - loss: 0.9373
+Epoch 4/30
+10/10 [==============================] - 10s 1s/step - loss: 0.9216
+Epoch 5/30
+10/10 [==============================] - 9s 940ms/step - loss: 0.8857
+Epoch 6/30
+10/10 [==============================] - 9s 891ms/step - loss: 0.8015
+Epoch 7/30
+10/10 [==============================] - 9s 948ms/step - loss: 0.6577
+Epoch 8/30
+10/10 [==============================] - 10s 1s/step - loss: 0.5357
+Epoch 9/30
+10/10 [==============================] - 11s 1s/step - loss: 0.4065
+Epoch 10/30
+10/10 [==============================] - 10s 978ms/step - loss: 0.2644
+Epoch 11/30
+10/10 [==============================] - 9s 909ms/step - loss: 0.1916
+Epoch 12/30
+10/10 [==============================] - 9s 880ms/step - loss: 0.1484
+Epoch 13/30
+10/10 [==============================] - 9s 928ms/step - loss: 0.1138
+Epoch 14/30
+10/10 [==============================] - 10s 1s/step - loss: 0.0886
+Epoch 15/30
+10/10 [==============================] - 11s 1s/step - loss: 0.0651
+Epoch 16/30
+10/10 [==============================] - 10s 996ms/step - loss: 0.0475
+Epoch 17/30
+10/10 [==============================] - 9s 915ms/step - loss: 0.0356
+Epoch 18/30
+10/10 [==============================] - 9s 889ms/step - loss: 0.0288
+Epoch 19/30
+10/10 [==============================] - 10s 953ms/step - loss: 0.0230
+Epoch 20/30
+10/10 [==============================] - 10s 1s/step - loss: 0.0180
+Epoch 21/30
+10/10 [==============================] - 11s 1s/step - loss: 0.0152
+Epoch 22/30
+10/10 [==============================] - 10s 970ms/step - loss: 0.0135
+Epoch 23/30
+10/10 [==============================] - 9s 900ms/step - loss: 0.0123
+Epoch 24/30
+10/10 [==============================] - 9s 889ms/step - loss: 0.0108
+Epoch 25/30
+10/10 [==============================] - 9s 935ms/step - loss: 0.0098
+Epoch 26/30
+10/10 [==============================] - 10s 1s/step - loss: 0.0092
+Epoch 27/30
+10/10 [==============================] - 11s 1s/step - loss: 0.0080
+Epoch 28/30
+10/10 [==============================] - 10s 1s/step - loss: 0.0074
+Epoch 29/30
+10/10 [==============================] - 9s 935ms/step - loss: 0.0070
+Epoch 30/30
+10/10 [==============================] - 9s 882ms/step - loss: 0.0065
+Pretraining time: 294.65s
+
+### Phase 3: self-training ###
+Update interval: 30
+
+Iter 0:
+f1_macro = 0.78008, f1_micro = 0.90903 @ level 1
+f1_macro = 0.78008, f1_micro = 0.90903 @ all classes
+
+Iter 30:
+f1_macro = 0.80194, f1_micro = 0.91667 @ level 1
+f1_macro = 0.80194, f1_micro = 0.91667 @ all classes
+Fraction of documents with label changes: 1.101 %
+
+Iter 60:
+f1_macro = 0.81668, f1_micro = 0.92027 @ level 1
+f1_macro = 0.81668, f1_micro = 0.92027 @ all classes
+Fraction of documents with label changes: 0.971 %
+
+Iter 90:
+f1_macro = 0.82546, f1_micro = 0.92172 @ level 1
+f1_macro = 0.82546, f1_micro = 0.92172 @ all classes
+Fraction of documents with label changes: 0.505 %
+
+Iter 120:
+f1_macro = 0.83031, f1_micro = 0.92287 @ level 1
+f1_macro = 0.83031, f1_micro = 0.92287 @ all classes
+Fraction of documents with label changes: 0.42 %
+
+Iter 150:
+f1_macro = 0.83606, f1_micro = 0.92416 @ level 1
+f1_macro = 0.83606, f1_micro = 0.92416 @ all classes
+Fraction of documents with label changes: 0.443 %
+
+Iter 180:
+f1_macro = 0.8394, f1_micro = 0.92501 @ level 1
+f1_macro = 0.8394, f1_micro = 0.92501 @ all classes
+Fraction of documents with label changes: 0.183 %
+
+Iter 210:
+f1_macro = 0.84191, f1_micro = 0.92546 @ level 1
+f1_macro = 0.84191, f1_micro = 0.92546 @ all classes
+Fraction of documents with label changes: 0.199 %
+
+Iter 240:
+f1_macro = 0.84197, f1_micro = 0.92524 @ level 1
+f1_macro = 0.84197, f1_micro = 0.92524 @ all classes
+Fraction of documents with label changes: 0.107 %
+
+Iter 270:
+f1_macro = 0.84381, f1_micro = 0.92577 @ level 1
+f1_macro = 0.84381, f1_micro = 0.92577 @ all classes
+Fraction of documents with label changes: 0.092 %
+
+Fraction: 0.092 % < tol: 0.1 %
+Reached tolerance threshold. Self-training terminated.
+Final model saved to: ./results/nyt/keywords/level_0/final.h5
+Self-training time: 457.86s
+
+### Proceeding level 1 ###
+Nodes: ['politics', 'arts', 'business', 'science', 'sports']
+
+### Input preparation ###
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_5"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_3 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm_2 (LSTM)                (None, 39, 100)           80400
+_________________________________________________________________
+lstm_3 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_5 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+Final expansion size t = 3
+['cuts', 'budget', 'debt']
+
+
+
+weight: [1.]
+kappa: [420.13272182]
+['surveillance', 'intelligence', 'snowden']
+
+
+
+weight: [1.]
+kappa: [407.78756723]
+['insurance', 'coverage', 'medicaid']
+weight: [1.]
+kappa: [545.15124715]
+['immigrants', 'immigration', 'citizenship']
+weight: [1.]
+kappa: [345.12091102]
+['death', 'judge', 'prosecutors']
+weight: [1.]
+kappa: [303.34224693]
+['gay', 'marriage', 'same-sex']
+weight: [1.]
+kappa: [696.11766873]
+['gun', 'guns', 'rifle']
+weight: [1.]
+kappa: [376.6760087]
+['military', 'pentagon', 'combat']
+weight: [1.]
+kappa: [370.24738666]
+['abortion', 'abortions', 'clinics']
+weight: [1.]
+kappa: [583.27249527]
+Finished vMF distribution fitting.
+Pseudodocs generation for class federal_budget...
+Pseudodocs generation time: 787.90s
+Pseudodocs generation for class surveillance...
+Pseudodocs generation time: 870.17s
+Pseudodocs generation for class the_affordable_care_act...
+Pseudodocs generation time: 1153.46s
+Pseudodocs generation for class immigration...

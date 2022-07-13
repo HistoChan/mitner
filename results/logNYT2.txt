@@ -1,0 +1,570 @@
+(NER) C:\Users\User\Documents\GITModel\WeSHClass-master>python main.py --dataset "nyt" --beta 200 --maxiter "5000,5000" --gamma 0.9 --pseudo "lstm"
+Namespace(alpha=0.2, batch_size=256, beta=200, block_level=1, dataset='nyt', delta=0.1, gamma=0.9, \
+  max_level=None, maxiter='5000,5000', pretrain_epochs=None, pseudo='lstm', sup_source='keywords', \
+  update_interval=None, with_eval='All')
+Total number of classes: 31
+ROOT (-1)       politics,arts,business,science,sports
+politics (0)    federal_budget,surveillance,the_affordable_care_act,immigration,law_enforcement,gay_rights,gun_control,military,abortion
+federal_budget (5)
+surveillance (6)
+the_affordable_care_act (7)
+immigration (8)
+law_enforcement (9)
+gay_rights (10)
+gun_control (11)
+military (12)
+abortion (13)
+arts (1)        dance,television,music,movies
+dance (14)
+television (15)
+music (16)
+movies (17)
+business (2)    stocks_and_bonds,energy_companies,economy,international_business
+stocks_and_bonds (18)
+energy_companies (19)
+economy (20)
+international_business (21)
+science (3)     cosmos,environment
+cosmos (22)
+environment (23)
+sports (4)      hockey,basketball,tennis,golf,football,baseball,soccer
+hockey (24)
+basketball (25)
+tennis (26)
+golf (27)
+football (28)
+baseball (29)
+soccer (30)
+
+
+### Dataset statistics - Documents: ###
+Document max length: 6680 (words)
+Document average length: 768.6299977065974 (words)
+Document length std: 336.24848625154004 (words)
+Defined maximum document length: 1500 (words)
+Fraction of truncated documents: 0.009785184618912927
+Vocabulary Size: 105157
+
+### Dataset statistics - Sentences: ###
+Sentence max length: 227 (words)
+Sentence average length: 24.24098582895263 (words)
+Defined maximum sentence length: 40 (words)
+Fraction of truncated sentences: 0.10561965416012406
+Sequences shape: (9531872, 40)
+
+### Supervision type: Class-related Keywords ###
+x shape: (13081, 1500)
+
+### Proceeding level 0 ###
+Nodes: ['ROOT']
+
+### Input preparation ###
+Training embedding for node ROOT
+Loading existing Word2Vec embedding ./nyt\embedding_ROOT.p...
+
+### Phase 1: vMF distribution fitting & pseudo document generation ###
+Pseudo documents generation (Method: LSTM language model)...
+Model: "model_1"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 39)]              0
+_________________________________________________________________
+embedding_1 (Embedding)      (None, 39, 100)           1000100
+_________________________________________________________________
+lstm (LSTM)                  (None, 39, 100)           80400
+_________________________________________________________________
+lstm_1 (LSTM)                (None, 100)               80400
+_________________________________________________________________
+dense_2 (Dense)              (None, 10001)             1010101
+=================================================================
+Total params: 2,171,001
+Trainable params: 1,170,901
+Non-trainable params: 1,000,100
+_________________________________________________________________
+Loading model ./nyt/lm/model-final.h5...
+Retrieving top-t nearest words...
+current_sz: 3
+Final expansion size t = 3
+['cuts', 'budget', 'debt']
+['surveillance', 'intelligence', 'snowden']
+['insurance', 'coverage', 'medicaid']
+['immigrants', 'immigration', 'citizenship']
+['death', 'judge', 'prosecutors']
+['gay', 'marriage', 'same-sex']
+['gun', 'guns', 'rifle']
+['military', 'pentagon', 'combat']
+['abortion', 'abortions', 'clinics']
+weight: [0.07407407 0.11111111 0.03703704 0.11111111 0.11111111 0.22222222 0.11111111 0.11111111 0.11111111]
+kappa: [6.66215316e+02 4.20132722e+02 1.00000000e+10 6.96117669e+02
+ 5.83272495e+02 2.42271553e+02 5.45151247e+02 3.83151639e+02
+ 3.03342247e+02]
+
+['ballet', 'dancers', 'dancer']
+['episode', 'viewers', 'episodes']
+['album', 'songs', 'orchestra']
+['hollywood', 'directed', 'oscar']
+weight: [0.25       0.16666667 0.33333333 0.25      ]
+kappa: [288.30047067 735.61531407 303.91014845 205.52216358]
+
+['stocks', 'dow', 'points']
+['natural', 'power', 'electricity']
+['fed', 'economists', 'economist']
+['china', 'union', 'euro']
+weight: [0.16666667 0.16666667 0.25       0.41666667]
+kappa: [320.6518338  184.20523846 337.82188023 231.63753222]
+
+['spacecraft', 'sun', 'kepler']
+['climate', 'wildlife', 'fish']
+weight: [0.5 0.5]
+kappa: [375.99381647 269.05010271]
+
+['period', 'rangers', 'bruins']
+['rebounds', 'nets', 'knicks']
+['wimbledon', 'tennis', 'slam']
+['golf', 'tour', 'pga']
+['yards', 'quarterback', 'touchdown']
+['innings', 'inning', 'yankees']
+['cup', 'champions', 'united']
+weight: [0.19047619 0.19047619 0.04761905 0.0952381  0.14285714 0.19047619
+ 0.14285714]
+kappa: [2.42031788e+02 2.48117831e+02 1.00000000e+10 2.49722255e+03
+ 3.83624753e+02 2.79346986e+02 2.31901361e+02]
+
+Finished vMF distribution fitting.
+Pseudodocs generation for class politics...
+Pseudodocs generation time: 779.18s
+Pseudodocs generation for class arts...
+Pseudodocs generation time: 991.88s
+Pseudodocs generation for class business...
+Pseudodocs generation time: 599.60s
+Pseudodocs generation for class science...
+Pseudodocs generation time: 573.39s
+Pseudodocs generation for class sports...
+Pseudodocs generation time: 431.69s
+Finished pseudo documents generation.
+
+### Phase 2: pre-training with pseudo documents ###
+Pretraining node sports
+
+Pretraining...
+Epoch 1/30
+6/6 [==============================] - 7s 983ms/step - loss: 1.1812
+Epoch 2/30
+6/6 [==============================] - 6s 974ms/step - loss: 1.1789
+Epoch 3/30
+6/6 [==============================] - 6s 920ms/step - loss: 1.1757
+Epoch 4/30
+6/6 [==============================] - 6s 894ms/step - loss: 1.1657
+Epoch 5/30
+6/6 [==============================] - 5s 830ms/step - loss: 1.1518
+Epoch 6/30
+6/6 [==============================] - 5s 807ms/step - loss: 1.1287
+Epoch 7/30
+6/6 [==============================] - 5s 825ms/step - loss: 1.0880
+Epoch 8/30
+6/6 [==============================] - 5s 849ms/step - loss: 1.0275
+Epoch 9/30
+6/6 [==============================] - 5s 889ms/step - loss: 0.9313
+Epoch 10/30
+6/6 [==============================] - 6s 941ms/step - loss: 0.7877
+Epoch 11/30
+6/6 [==============================] - 6s 996ms/step - loss: 0.6233
+Epoch 12/30
+6/6 [==============================] - 7s 1s/step - loss: 0.4704
+Epoch 13/30
+6/6 [==============================] - 6s 990ms/step - loss: 0.3507
+Epoch 14/30
+6/6 [==============================] - 6s 927ms/step - loss: 0.2627
+Epoch 15/30
+6/6 [==============================] - 5s 878ms/step - loss: 0.2017
+Epoch 16/30
+6/6 [==============================] - 5s 844ms/step - loss: 0.1548
+Epoch 17/30
+6/6 [==============================] - 5s 820ms/step - loss: 0.1201
+Epoch 18/30
+6/6 [==============================] - 5s 800ms/step - loss: 0.0914
+Epoch 19/30
+6/6 [==============================] - 5s 816ms/step - loss: 0.0763
+Epoch 20/30
+6/6 [==============================] - 5s 836ms/step - loss: 0.0633
+Epoch 21/30
+6/6 [==============================] - 5s 873ms/step - loss: 0.0548
+Epoch 22/30
+6/6 [==============================] - 6s 919ms/step - loss: 0.0486
+Epoch 23/30
+6/6 [==============================] - 6s 976ms/step - loss: 0.0432
+Epoch 24/30
+6/6 [==============================] - 6s 1s/step - loss: 0.0404
+Epoch 25/30
+6/6 [==============================] - 6s 976ms/step - loss: 0.0348
+Epoch 26/30
+6/6 [==============================] - 6s 915ms/step - loss: 0.0320
+Epoch 27/30
+6/6 [==============================] - 5s 875ms/step - loss: 0.0299
+Epoch 28/30
+6/6 [==============================] - 5s 840ms/step - loss: 0.0274
+Epoch 29/30
+6/6 [==============================] - 5s 815ms/step - loss: 0.0255
+Epoch 30/30
+6/6 [==============================] - 5s 814ms/step - loss: 0.0238
+Pretraining time: 165.85s
+
+### Phase 3: self-training ###
+Update interval: 30
+
+Iter 0:
+Number of blocked documents back to level 1: 2438
+f1_macro = 0.79034, f1_micro = 0.89114 @ level 1
+f1_macro = 0.48638, f1_micro = 0.69531 @ level 2
+f1_macro = 0.5294, f1_micro = 0.79207 @ all classes
+
+Iter 30:
+Number of blocked documents back to level 1: 2326
+f1_macro = 0.80128, f1_micro = 0.89894 @ level 1
+f1_macro = 0.51309, f1_micro = 0.73123 @ level 2
+f1_macro = 0.55417, f1_micro = 0.81396 @ all classes
+Fraction of documents with label changes: 6.544 %
+
+Iter 60:
+Number of blocked documents back to level 1: 2181
+f1_macro = 0.80685, f1_micro = 0.90368 @ level 1
+f1_macro = 0.53001, f1_micro = 0.7481 @ level 2
+f1_macro = 0.5702, f1_micro = 0.82531 @ all classes
+Fraction of documents with label changes: 4.22 %
+
+Iter 90:
+Number of blocked documents back to level 1: 2119
+f1_macro = 0.80977, f1_micro = 0.90612 @ level 1
+f1_macro = 0.53741, f1_micro = 0.75795 @ level 2
+f1_macro = 0.57757, f1_micro = 0.83241 @ all classes
+Fraction of documents with label changes: 2.783 %
+
+Iter 120:
+Number of blocked documents back to level 1: 2042
+f1_macro = 0.81144, f1_micro = 0.90758 @ level 1
+f1_macro = 0.54423, f1_micro = 0.76452 @ level 2
+f1_macro = 0.58426, f1_micro = 0.83706 @ all classes
+Fraction of documents with label changes: 2.163 %
+
+Iter 150:
+Number of blocked documents back to level 1: 2009
+f1_macro = 0.81616, f1_micro = 0.91025 @ level 1
+f1_macro = 0.54917, f1_micro = 0.7685 @ level 2
+f1_macro = 0.58908, f1_micro = 0.84021 @ all classes
+Fraction of documents with label changes: 1.353 %
+
+Iter 180:
+Number of blocked documents back to level 1: 1961
+f1_macro = 0.81695, f1_micro = 0.91109 @ level 1
+f1_macro = 0.55466, f1_micro = 0.77257 @ level 2
+f1_macro = 0.59422, f1_micro = 0.84323 @ all classes
+Fraction of documents with label changes: 1.238 %
+
+Iter 210:
+Number of blocked documents back to level 1: 1915
+f1_macro = 0.81782, f1_micro = 0.9117 @ level 1
+f1_macro = 0.55788, f1_micro = 0.77442 @ level 2
+f1_macro = 0.59704, f1_micro = 0.84427 @ all classes
+Fraction of documents with label changes: 1.047 %
+
+Iter 240:
+Number of blocked documents back to level 1: 1864
+f1_macro = 0.81789, f1_micro = 0.91216 @ level 1
+f1_macro = 0.55842, f1_micro = 0.77671 @ level 2
+f1_macro = 0.59802, f1_micro = 0.84608 @ all classes
+Fraction of documents with label changes: 1.047 %
+
+Iter 270:
+Number of blocked documents back to level 1: 1814
+f1_macro = 0.81832, f1_micro = 0.91247 @ level 1
+f1_macro = 0.56097, f1_micro = 0.77841 @ level 2
+f1_macro = 0.60025, f1_micro = 0.84701 @ all classes
+Fraction of documents with label changes: 0.979 %
+
+Iter 300:
+Number of blocked documents back to level 1: 1780
+f1_macro = 0.8187, f1_micro = 0.91254 @ level 1
+f1_macro = 0.56266, f1_micro = 0.779 @ level 2
+f1_macro = 0.60181, f1_micro = 0.84756 @ all classes
+Fraction of documents with label changes: 0.772 %
+
+Iter 330:
+Number of blocked documents back to level 1: 1746
+f1_macro = 0.81866, f1_micro = 0.91254 @ level 1
+f1_macro = 0.56252, f1_micro = 0.78002 @ level 2
+f1_macro = 0.60163, f1_micro = 0.84787 @ all classes
+Fraction of documents with label changes: 0.894 %
+
+Iter 360:
+Number of blocked documents back to level 1: 1730
+f1_macro = 0.81859, f1_micro = 0.91285 @ level 1
+f1_macro = 0.56387, f1_micro = 0.78129 @ level 2
+f1_macro = 0.60271, f1_micro = 0.84849 @ all classes
+Fraction of documents with label changes: 0.742 %
+
+Iter 390:
+Number of blocked documents back to level 1: 1710
+f1_macro = 0.81777, f1_micro = 0.91254 @ level 1
+f1_macro = 0.56367, f1_micro = 0.78183 @ level 2
+f1_macro = 0.6025, f1_micro = 0.84871 @ all classes
+Fraction of documents with label changes: 0.68 %
+
+Iter 420:
+Number of blocked documents back to level 1: 1683
+f1_macro = 0.81687, f1_micro = 0.91216 @ level 1
+f1_macro = 0.56374, f1_micro = 0.78221 @ level 2
+f1_macro = 0.6027, f1_micro = 0.84902 @ all classes
+Fraction of documents with label changes: 0.505 %
+
+Iter 450:
+Number of blocked documents back to level 1: 1650
+f1_macro = 0.81638, f1_micro = 0.91216 @ level 1
+f1_macro = 0.56287, f1_micro = 0.78317 @ level 2
+f1_macro = 0.60205, f1_micro = 0.84959 @ all classes
+Fraction of documents with label changes: 0.696 %
+
+Iter 480:
+Number of blocked documents back to level 1: 1613
+f1_macro = 0.81674, f1_micro = 0.91232 @ level 1
+f1_macro = 0.5644, f1_micro = 0.78408 @ level 2
+f1_macro = 0.6035, f1_micro = 0.85025 @ all classes
+Fraction of documents with label changes: 0.566 %
+
+Iter 510:
+Number of blocked documents back to level 1: 1583
+f1_macro = 0.81663, f1_micro = 0.91224 @ level 1
+f1_macro = 0.56504, f1_micro = 0.78444 @ level 2
+f1_macro = 0.60386, f1_micro = 0.85021 @ all classes
+Fraction of documents with label changes: 0.459 %
+
+Iter 540:
+Number of blocked documents back to level 1: 1562
+f1_macro = 0.81711, f1_micro = 0.91254 @ level 1
+f1_macro = 0.56613, f1_micro = 0.78537 @ level 2
+f1_macro = 0.60477, f1_micro = 0.8507 @ all classes
+Fraction of documents with label changes: 0.489 %
+
+Iter 570:
+Number of blocked documents back to level 1: 1541
+f1_macro = 0.81675, f1_micro = 0.91247 @ level 1
+f1_macro = 0.56391, f1_micro = 0.78526 @ level 2
+f1_macro = 0.60293, f1_micro = 0.85067 @ all classes
+Fraction of documents with label changes: 0.512 %
+
+Iter 600:
+Number of blocked documents back to level 1: 1516
+f1_macro = 0.81693, f1_micro = 0.91254 @ level 1
+f1_macro = 0.56456, f1_micro = 0.78571 @ level 2
+f1_macro = 0.60358, f1_micro = 0.85096 @ all classes
+Fraction of documents with label changes: 0.436 %
+
+Iter 630:
+Number of blocked documents back to level 1: 1500
+f1_macro = 0.8164, f1_micro = 0.91224 @ level 1
+f1_macro = 0.56488, f1_micro = 0.78654 @ level 2
+f1_macro = 0.60387, f1_micro = 0.85138 @ all classes
+Fraction of documents with label changes: 0.474 %
+
+Iter 660:
+Number of blocked documents back to level 1: 1472
+f1_macro = 0.816, f1_micro = 0.91209 @ level 1
+f1_macro = 0.56503, f1_micro = 0.78697 @ level 2
+f1_macro = 0.60405, f1_micro = 0.85158 @ all classes
+Fraction of documents with label changes: 0.459 %
+
+Iter 690:
+Number of blocked documents back to level 1: 1444
+f1_macro = 0.81658, f1_micro = 0.91239 @ level 1
+f1_macro = 0.56458, f1_micro = 0.78696 @ level 2
+f1_macro = 0.60377, f1_micro = 0.85166 @ all classes
+Fraction of documents with label changes: 0.428 %
+
+Iter 720:
+Number of blocked documents back to level 1: 1436
+f1_macro = 0.81663, f1_micro = 0.91239 @ level 1
+f1_macro = 0.56528, f1_micro = 0.78738 @ level 2
+f1_macro = 0.60426, f1_micro = 0.85181 @ all classes
+Fraction of documents with label changes: 0.39 %
+
+Iter 750:
+Number of blocked documents back to level 1: 1421
+f1_macro = 0.81566, f1_micro = 0.91216 @ level 1
+f1_macro = 0.5654, f1_micro = 0.78773 @ level 2
+f1_macro = 0.60445, f1_micro = 0.85204 @ all classes
+Fraction of documents with label changes: 0.451 %
+
+Iter 780:
+Number of blocked documents back to level 1: 1408
+f1_macro = 0.81591, f1_micro = 0.91224 @ level 1
+f1_macro = 0.56501, f1_micro = 0.78789 @ level 2
+f1_macro = 0.60426, f1_micro = 0.85226 @ all classes
+Fraction of documents with label changes: 0.39 %
+
+Iter 810:
+Number of blocked documents back to level 1: 1398
+f1_macro = 0.8163, f1_micro = 0.91247 @ level 1
+f1_macro = 0.56653, f1_micro = 0.789 @ level 2
+f1_macro = 0.60565, f1_micro = 0.85301 @ all classes
+Fraction of documents with label changes: 0.443 %
+
+Iter 840:
+Number of blocked documents back to level 1: 1384
+f1_macro = 0.81618, f1_micro = 0.91247 @ level 1
+f1_macro = 0.56541, f1_micro = 0.78947 @ level 2
+f1_macro = 0.6046, f1_micro = 0.85309 @ all classes
+Fraction of documents with label changes: 0.466 %
+
+Iter 870:
+Number of blocked documents back to level 1: 1376
+f1_macro = 0.81649, f1_micro = 0.91262 @ level 1
+f1_macro = 0.56638, f1_micro = 0.78971 @ level 2
+f1_macro = 0.60545, f1_micro = 0.85328 @ all classes
+Fraction of documents with label changes: 0.39 %
+
+Iter 900:
+Number of blocked documents back to level 1: 1363
+f1_macro = 0.81673, f1_micro = 0.91293 @ level 1
+f1_macro = 0.56615, f1_micro = 0.79021 @ level 2
+f1_macro = 0.60521, f1_micro = 0.85342 @ all classes
+Fraction of documents with label changes: 0.398 %
+
+Iter 930:
+Number of blocked documents back to level 1: 1352
+f1_macro = 0.81698, f1_micro = 0.91308 @ level 1
+f1_macro = 0.56618, f1_micro = 0.79053 @ level 2
+f1_macro = 0.6052, f1_micro = 0.85351 @ all classes
+Fraction of documents with label changes: 0.26 %
+
+Iter 960:
+Number of blocked documents back to level 1: 1342
+f1_macro = 0.81787, f1_micro = 0.91346 @ level 1
+f1_macro = 0.5651, f1_micro = 0.79027 @ level 2
+f1_macro = 0.60439, f1_micro = 0.85354 @ all classes
+Fraction of documents with label changes: 0.268 %
+
+Iter 990:
+Number of blocked documents back to level 1: 1337
+f1_macro = 0.81836, f1_micro = 0.91346 @ level 1
+f1_macro = 0.5653, f1_micro = 0.79053 @ level 2
+f1_macro = 0.60463, f1_micro = 0.85378 @ all classes
+Fraction of documents with label changes: 0.245 %
+
+Iter 1020:
+Number of blocked documents back to level 1: 1326
+f1_macro = 0.81865, f1_micro = 0.91362 @ level 1
+f1_macro = 0.56721, f1_micro = 0.79118 @ level 2
+f1_macro = 0.60641, f1_micro = 0.85427 @ all classes
+Fraction of documents with label changes: 0.237 %
+
+Iter 1050:
+Number of blocked documents back to level 1: 1326
+f1_macro = 0.81972, f1_micro = 0.914 @ level 1
+f1_macro = 0.56698, f1_micro = 0.79195 @ level 2
+f1_macro = 0.60644, f1_micro = 0.85504 @ all classes
+Fraction of documents with label changes: 0.367 %
+
+Iter 960:
+Number of blocked documents back to level 1: 1342
+f1_macro = 0.81787, f1_micro = 0.91346 @ level 1
+f1_macro = 0.5651, f1_micro = 0.79027 @ level 2
+f1_macro = 0.60439, f1_micro = 0.85354 @ all classes
+Fraction of documents with label changes: 0.268 %
+
+Iter 990:
+Number of blocked documents back to level 1: 1337
+f1_macro = 0.81836, f1_micro = 0.91346 @ level 1
+f1_macro = 0.5653, f1_micro = 0.79053 @ level 2
+f1_macro = 0.60463, f1_micro = 0.85378 @ all classes
+Fraction of documents with label changes: 0.245 %
+
+Iter 1020:
+Number of blocked documents back to level 1: 1326
+f1_macro = 0.81865, f1_micro = 0.91362 @ level 1
+f1_macro = 0.56721, f1_micro = 0.79118 @ level 2
+f1_macro = 0.60641, f1_micro = 0.85427 @ all classes
+Fraction of documents with label changes: 0.237 %
+
+Iter 1050:
+Number of blocked documents back to level 1: 1326
+f1_macro = 0.81972, f1_micro = 0.914 @ level 1
+f1_macro = 0.56698, f1_micro = 0.79195 @ level 2
+f1_macro = 0.60644, f1_micro = 0.85504 @ all classes
+Fraction of documents with label changes: 0.367 %
+
+Iter 1080:
+Number of blocked documents back to level 1: 1320
+f1_macro = 0.82015, f1_micro = 0.91407 @ level 1
+f1_macro = 0.56575, f1_micro = 0.79217 @ level 2
+f1_macro = 0.60543, f1_micro = 0.85514 @ all classes
+Fraction of documents with label changes: 0.29 %
+
+Iter 1110:
+Number of blocked documents back to level 1: 1307
+f1_macro = 0.82037, f1_micro = 0.91423 @ level 1
+f1_macro = 0.56502, f1_micro = 0.79207 @ level 2
+f1_macro = 0.60485, f1_micro = 0.85507 @ all classes
+Fraction of documents with label changes: 0.176 %
+
+Iter 1140:
+Number of blocked documents back to level 1: 1311
+f1_macro = 0.82116, f1_micro = 0.91446 @ level 1
+f1_macro = 0.56439, f1_micro = 0.79263 @ level 2
+f1_macro = 0.60445, f1_micro = 0.85546 @ all classes
+Fraction of documents with label changes: 0.252 %
+
+Iter 1170:
+Number of blocked documents back to level 1: 1294
+f1_macro = 0.82104, f1_micro = 0.9143 @ level 1
+f1_macro = 0.56511, f1_micro = 0.79291 @ level 2
+f1_macro = 0.60496, f1_micro = 0.85553 @ all classes
+Fraction of documents with label changes: 0.222 %
+
+Iter 1200:
+Number of blocked documents back to level 1: 1291
+f1_macro = 0.8197, f1_micro = 0.91407 @ level 1
+f1_macro = 0.56472, f1_micro = 0.79281 @ level 2
+f1_macro = 0.60426, f1_micro = 0.8552 @ all classes
+Fraction of documents with label changes: 0.382 %
+
+Iter 1230:
+Number of blocked documents back to level 1: 1288
+f1_macro = 0.82054, f1_micro = 0.9143 @ level 1
+f1_macro = 0.5645, f1_micro = 0.79296 @ level 2
+f1_macro = 0.60426, f1_micro = 0.85547 @ all classes
+Fraction of documents with label changes: 0.313 %
+
+Iter 1260:
+Number of blocked documents back to level 1: 1277
+f1_macro = 0.82088, f1_micro = 0.91453 @ level 1
+f1_macro = 0.56392, f1_micro = 0.79327 @ level 2
+f1_macro = 0.60379, f1_micro = 0.85568 @ all classes
+Fraction of documents with label changes: 0.199 %
+
+Iter 1290:
+Number of blocked documents back to level 1: 1273
+f1_macro = 0.82119, f1_micro = 0.91446 @ level 1
+f1_macro = 0.56368, f1_micro = 0.79348 @ level 2
+f1_macro = 0.60362, f1_micro = 0.85582 @ all classes
+Fraction of documents with label changes: 0.26 %
+
+Iter 1320:
+Number of blocked documents back to level 1: 1266
+f1_macro = 0.82202, f1_micro = 0.91491 @ level 1
+f1_macro = 0.56371, f1_micro = 0.79392 @ level 2
+f1_macro = 0.60385, f1_micro = 0.85626 @ all classes
+Fraction of documents with label changes: 0.222 %
+
+Iter 1350:
+Number of blocked documents back to level 1: 1256
+f1_macro = 0.82186, f1_micro = 0.91484 @ level 1
+f1_macro = 0.56339, f1_micro = 0.79409 @ level 2
+f1_macro = 0.60352, f1_micro = 0.85633 @ all classes
+Fraction of documents with label changes: 0.252 %
+
+Iter 1380:
+Number of blocked documents back to level 1: 1255
+f1_macro = 0.82187, f1_micro = 0.91484 @ level 1
+f1_macro = 0.56333, f1_micro = 0.79465 @ level 2
+f1_macro = 0.60355, f1_micro = 0.85671 @ all classes
+Fraction of documents with label changes: 0.252 %
