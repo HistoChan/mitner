@@ -1,4 +1,8 @@
 cd C:\Users\User\Documents\GITModel\WeSHClass-master
 conda activate NER
-python main.py --dataset "arxiv" --beta 1 --maxiter "10,10" --max_level 1 --pseudo "lstm"
+#small size standard
+python preprocess_data.py --beta 200 --maxiter "5000,5000" --pseudo "lstm"
+python main.py
+
+python main.py --beta 100 --maxiter "500,500" --max_level 1 --pseudo "lstm"
 python main.py --dataset "arxiv" --beta 200 --maxiter "5000,5000" --max_level 1 --pseudo "lstm"

@@ -210,6 +210,7 @@ def proceed_level(
                 )
             elif args.pseudo == "lstm":
                 print("Pseudo documents generation (Method: LSTM language model)...")
+                # TODO: LSTM to BERT
                 lm = train_lstm(
                     sequences,
                     common_words,
@@ -268,6 +269,7 @@ def proceed_level(
     wstc.model.append(global_classifier)
     t0 = time()
     print("\n### Phase 3: self-training ###")
+    # TODO: need change?
     selftrain_optimizer = SGD(lr=self_lr, momentum=0.9, decay=decay)
     wstc.compile(level, optimizer=selftrain_optimizer, loss="kld")
     y_pred = wstc.fit(

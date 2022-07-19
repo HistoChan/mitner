@@ -8,8 +8,8 @@ from time import time
 import csv
 
 # resolve problem that keras fails to work
-import tensorflow as tf
-from tensorflow import keras
+# import tensorflow as tf
+# from tensorflow import keras
 import tensorflow.keras.backend as K
 
 # from keras.engine.topology import Layer
@@ -32,7 +32,7 @@ from tensorflow.keras.initializers import RandomUniform
 from utils import f1
 from scipy.stats import entropy
 
-
+# TODO: From LSTM To BERT
 def LSTMLanguageModel(
     input_shape, word_embedding_dim, vocab_sz, hidden_dim, embedding_matrix
 ):
@@ -118,13 +118,9 @@ class WSTC(object):
         self,
         input_shape,
         class_tree,
-        max_level,
         sup_source,
-        init=RandomUniform(minval=-0.01, maxval=0.01),
         y=None,
         vocab_sz=None,
-        word_embedding_dim=100,
-        blocking_perc=0,
         block_thre=1.0,
         block_level=1,
     ):
@@ -171,20 +167,22 @@ class WSTC(object):
         if num_children <= 1:
             class_tree.model = None
         else:
-            class_tree.model = ConvolutionLayer(
-                self.x,
-                self.input_shape[1],
-                filter_sizes=filter_sizes,
-                n_classes=num_children,
-                vocab_sz=self.vocab_sz,
-                embedding_matrix=class_tree.embedding,
-                hidden_dim=hidden_dim,
-                word_embedding_dim=word_embedding_dim,
-                num_filters=num_filters,
-                init=init,
-                word_trainable=word_trainable,
-                act=act,
-            )
+            # TODO: BERT
+            pass
+            # class_tree.model = ConvolutionLayer(
+            #     self.x,
+            #     self.input_shape[1],
+            #     filter_sizes=filter_sizes,
+            #     n_classes=num_children,
+            #     vocab_sz=self.vocab_sz,
+            #     embedding_matrix=class_tree.embedding,
+            #     hidden_dim=hidden_dim,
+            #     word_embedding_dim=word_embedding_dim,
+            #     num_filters=num_filters,
+            #     init=init,
+            #     word_trainable=word_trainable,
+            #     act=act,
+            # )
 
     def ensemble(self, class_tree, level, input_shape, parent_output):
         outputs = []
@@ -204,6 +202,7 @@ class WSTC(object):
                 )
         return outputs
 
+    # TODO: Check if change?
     def ensemble_classifier(self, level):
         outputs = self.ensemble(self.class_tree, level, self.input_shape[1], None)
         outputs = [
@@ -213,6 +212,7 @@ class WSTC(object):
         z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
         return Model(inputs=self.x, outputs=z)
 
+    # TODO: LSTM to BERTensemble_classifier
     def pretrain(
         self,
         x,
