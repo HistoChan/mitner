@@ -210,7 +210,6 @@ def proceed_level(
                 )
             elif args.pseudo == "lstm":
                 print("Pseudo documents generation (Method: LSTM language model)...")
-                # TODO: LSTM to BERT
                 lm = train_lstm(
                     sequences,
                     common_words,
@@ -254,8 +253,10 @@ def proceed_level(
             print("\n### Phase 2: pre-training with pseudo documents ###")
             print(f"Pretraining node {parent.name}")
 
+            # TODO: LSTM to BERT: check x
+            # Convert data to string (since LSTM tokenizer is different from BERT's)
             wstc.pretrain(
-                x=seed_docs,
+                x=[[vocabulary_inv[token] for token in seq] for seq in seed_docs],
                 pretrain_labels=seed_label,
                 model=parent.model,
                 optimizer=SGD(lr=0.1, momentum=0.9),

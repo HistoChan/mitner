@@ -23,8 +23,7 @@ from load_data import read_file
 """
 
 MODEL_TYPE = "bert-base-uncased"
-# get pre-train tokenizer
-tokenizer = BertTokenizer.from_pretrained(MODEL_TYPE)
+
 
 SEQ_LEN = 256
 BATCH_SIZE = 16
@@ -43,23 +42,32 @@ def get_label_map(tree):
 label_map = get_label_map(class_tree)
 label_num = len(label_map)
 
-input_ids = []
-attention_masks = []
+# get pre-train tokenizer
+tokenizer = BertTokenizer.from_pretrained(MODEL_TYPE)
 
-for sentence in data:
-    encoded_dict = tokenizer.encode_plus(
-        sentence,  # Sentence to encode.
-        add_special_tokens=True,  # Add '[CLS]' and '[SEP]'
-        max_length=64,  # Pad & truncate all sentences.
-        pad_to_max_length=True,
-        return_attention_mask=True,  # Construct attn. masks.
-        return_tensors="pt",  # Return pytorch tensors.
-    )
-    # Add the encoded sentence to the list.
-    input_ids.append(encoded_dict["input_ids"])
 
-    # And its attention mask (simply differentiates padding from non-padding).
-    attention_masks.append(encoded_dict["attention_mask"])
+def create_tensors(data, tokenizer):
+    input_ids = []
+    attention_masks = []
+
+    for sentence in data:
+        encoded_dict = tokenizer.encode_plus(
+            sentence,  # Sentence to encode.
+            add_special_tokens=True,  # Add '[CLS]' and '[SEP]'
+            max_length=64,  # Pad & truncate all sentences.
+            pad_to_max_length=True,
+            return_attention_mask=True,  # Construct attn. masks.
+            return_tensors="pt",  # Return pytorch tensors.
+            truncation=True,
+        )
+        # Add the encoded sentence to the list.
+        input_ids.append(encoded_dict["input_ids"])
+        # And its attention mask (simply differentiates padding from non-padding).
+        attention_masks.append(encoded_dict["attention_mask"])
+    return encoded_dict, input_ids, attention_masks
+
+
+encoded_dict, input_ids, attention_masks = create_tensors(data, tokenizer)
 
 input_ids = torch.cat(input_ids, dim=0)
 attention_masks = torch.cat(attention_masks, dim=0)

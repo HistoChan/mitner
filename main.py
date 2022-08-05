@@ -9,6 +9,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from models import WSTC
 from utils import proceed_level, write_output
+from transformers import BertTokenizer
 
 
 if __name__ == "__main__":
@@ -21,13 +22,21 @@ if __name__ == "__main__":
 
     ### Basic settings ###
     # dataset selection: New York Times (default), arXiv and Yelp Review
-    parser.add_argument("--dataset", default="nyt", choices=["nyt", "arxiv", "yelp"])
-    args = parser.parse_args()
-    print(args)
+    # parser.add_argument("--dataset", default="nyt", choices=["nyt", "arxiv", "yelp"])
+    # args = parser.parse_args()
+    # print(args)
 
-    output_name = args.dataset + ".pkl"
+    # output_name = args.dataset + ".pkl"
+    output_name = "nyt.pkl"
     outp = open(output_name, "rb")
     outp_dict = pickle.load(outp)
+
+    # get pre-train tokenizer
+    MODEL_TYPE = "bert-base-uncased"
+    SEQ_LEN = 256
+    BATCH_SIZE = 16
+    tokenizer_basic = BertTokenizer.from_pretrained(MODEL_TYPE)
+    # tokenizer, input_ids, attention_masks = load_dataset_BERT("nyt", tokenizer_basic)
 
     wstc = WSTC(
         input_shape=outp_dict["x"].shape,
@@ -39,6 +48,7 @@ if __name__ == "__main__":
         word_embedding_dim=outp_dict["word_embedding_dim"],
         block_thre=outp_dict["args"].gamma,
         block_level=outp_dict["args"].block_level,
+        tokenizer=tokenizer_basic,
     )
 
     total_counts = sum(

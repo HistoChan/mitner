@@ -1,4 +1,4 @@
-import csv
+import torch
 import numpy as np
 import os
 import re
@@ -350,3 +350,78 @@ def load_dataset(
         len_std,
         perm,
     )
+
+
+def extend_tokenizer(trun_data, tokenizer):
+    word_counts = Counter(itertools.chain(*trun_data))
+
+    # sort the common words
+    common_word_list = sorted(
+        word_counts.items(), key=lambda item: item[1], reverse=True
+    )
+    # and filter the uncommon one's
+    # print(common_word_list[0])
+    highest_frequency = common_word_list[0][1]
+    cutoff_frequency = max(100, int(highest_frequency * 0.05))
+    potential_word_list = []
+    for tup in common_word_list:
+        if tup[1] >= cutoff_frequency:
+            potential_word_list.append(tup[0])
+        else:
+            break
+
+    # then filter the tokens worth to add: if the tokenizer tokenize the words strangely...
+    add_token_list = []
+    for word in potential_word_list:
+        tokens = tokenizer.tokenize(word)
+        # ... and if the tokenizer used suffixes, the word may be "tokenized strangely"
+        if len(tokens) > 1:
+            for t in tokens[1:]:
+                if t.startswith("##"):
+                    add_token_list.append(word)
+                    break
+
+    num_added_toks = tokenizer.add_tokens(add_token_list)
+    print("We have added", num_added_toks, "tokens from", len(add_token_list), "words.")
+
+    return tokenizer
+
+
+def create_tensors(data, tokenizer, truncate_doc_len=512):
+    # create_tensors
+    input_ids = []
+    attention_masks = []
+    for sentence in data:
+        encoded_dict = tokenizer.encode_plus(
+            sentence,  # Sentence to encode.
+            add_special_tokens=True,  # Add '[CLS]' and '[SEP]'
+            max_length=truncate_doc_len,  # Pad & truncate all sentences.
+            padding="max_length",
+            return_attention_mask=True,  # Construct attn. masks.
+            return_tensors="pt",  # Return pytorch tensors.
+            truncation=True,
+        )
+        # Add the encoded sentence to the list.
+        input_ids.append(encoded_dict["input_ids"])
+        # And its attention mask (simply differentiates padding from non-padding).
+        attention_masks.append(encoded_dict["attention_mask"])
+
+    input_ids = torch.cat(input_ids, dim=0)
+    attention_masks = torch.cat(attention_masks, dim=0)
+    return (input_ids, attention_masks)
+
+
+def load_data_BERT(data, tokenizer):
+    truncate_doc_len = 512
+
+    # data, _, _ = read_file(data, with_eval=with_eval)
+
+    np.random.seed(1234)
+    data = preprocess_doc(data)
+    split_data = [s.split(" ") for s in data]
+    trun_data = [s[: truncate_doc_len - 2] for s in data]
+    print(f"Defined maximum document length: {truncate_doc_len} (words)")
+
+    tokenizer = extend_tokenizer(trun_data, tokenizer)
+    input_ids, attention_masks = create_tensors(data, tokenizer, truncate_doc_len)
+    return (tokenizer, input_ids, attention_masks)
