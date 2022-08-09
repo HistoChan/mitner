@@ -127,6 +127,7 @@ class WSTC(object):
         blocking_perc=0,
         block_thre=1.0,
         block_level=1,
+        tokenizer=None,
     ):
 
         super(WSTC, self).__init__()
@@ -155,6 +156,7 @@ class WSTC(object):
                     current[i] = 1.0
                 for idx in leaf.sup_idx:
                     self.sup_dict[idx] = current
+        self.tokenizer = tokenizer
 
     def instantiate(
         self,
@@ -380,7 +382,7 @@ class WSTC(object):
         level,
         maxiter=5e4,
         batch_size=256,
-        tol=0.1,
+        tol=0.25,  # 0.1
         power=2,
         update_interval=100,
         save_dir=None,

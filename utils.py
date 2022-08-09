@@ -210,14 +210,19 @@ def proceed_level(
                 )
             elif args.pseudo == "lstm":
                 print("Pseudo documents generation (Method: LSTM language model)...")
-                lm = train_lstm(
-                    sequences,
-                    common_words,
-                    sent_length,
-                    f"./{dataset}/lm",
-                    embedding_matrix=class_tree.embedding,
-                )
-
+                # relative_nodes_names = [n.name for n in parent.children]
+                # for class_name in relative_nodes_names:
+                #     if os.path.exists(os.path.join(save_dir, f"{class_name}_pseudo_docs.pkl")):
+                #         print(f"Loading pseudodocs for class {class_name}...")
+                #         f = open(os.path.join(save_dir, f"{class_name}_pseudo_docs.pkl"), "rb")
+                #         cur_seq = pickle.load(f)
+                # lm = train_lstm(
+                #     sequences,
+                #     common_words,
+                #     sent_length,
+                #     f"./{dataset}/lm",
+                #     embedding_matrix=class_tree.embedding,
+                # )
                 seed_docs, seed_label = lstm_pseudodocs(
                     parent,
                     expand_num,
@@ -228,7 +233,7 @@ def proceed_level(
                     num_doc,
                     interp_weight,
                     vocabulary_inv,
-                    lm,
+                    None, #lm,
                     common_words,
                     save_dir,
                 )

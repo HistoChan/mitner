@@ -417,9 +417,10 @@ def load_data_BERT(data, tokenizer):
     # data, _, _ = read_file(data, with_eval=with_eval)
 
     np.random.seed(1234)
-    data = preprocess_doc(data)
-    split_data = [s.split(" ") for s in data]
+    # data = preprocess_doc(data)
+    # split_data = [s.split(" ") for s in data]
     trun_data = [s[: truncate_doc_len - 2] for s in data]
+    print(trun_data[0][:5])
     print(f"Defined maximum document length: {truncate_doc_len} (words)")
 
     tokenizer = extend_tokenizer(trun_data, tokenizer)

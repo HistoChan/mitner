@@ -41,7 +41,6 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler
 from load_data import load_data_BERT
 
-# TODO: From LSTM To BERT
 def LSTMLanguageModel(
     input_shape, word_embedding_dim, vocab_sz, hidden_dim, embedding_matrix
 ):
@@ -61,19 +60,6 @@ def LSTMLanguageModel(
     return Model(inputs=x, outputs=z)
 
 
-def IndexLayer(idx):
-    def func(x):
-        return x[:, idx]
-
-    return Lambda(func)
-
-
-def ExpanLayer(dim):
-    def func(x):
-        return K.expand_dims(x, dim)
-
-    return Lambda(func)
-
 
 def CustomBERTClassifier(num_labels):
     return BertForSequenceClassification.from_pretrained(
@@ -84,7 +70,7 @@ def CustomBERTClassifier(num_labels):
     )
 
 
-loss_f = KLDivLoss(reduction="mean")
+loss_f = KLDivLoss(reduction="batchmean")
 
 
 def get_KLDivLoss(logits, labels, num_labels, inclass, misclass):
@@ -105,11 +91,16 @@ class WSTC(object):
         self,
         input_shape,
         class_tree,
+        max_level,
         sup_source,
+        init=RandomUniform(minval=-0.01, maxval=0.01),
         y=None,
         vocab_sz=None,
+        word_embedding_dim=100,
+        blocking_perc=0,
         block_thre=1.0,
         block_level=1,
+        tokenizer=None,
     ):
 
         super(WSTC, self).__init__()
@@ -138,6 +129,7 @@ class WSTC(object):
                     current[i] = 1.0
                 for idx in leaf.sup_idx:
                     self.sup_dict[idx] = current
+        self.tokenizer = tokenizer
 
     def instantiate(
         self,
@@ -204,6 +196,7 @@ class WSTC(object):
         save_dir=None,
         suffix="",
     ):
+        print(x[0][:5])
         optimizer = Adam(model.parameters(), lr=1e-5)
         epochs = 3  # TODO: not hard code
         batch_size = 16  # TODO: not hard code
