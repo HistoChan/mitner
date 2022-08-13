@@ -189,17 +189,24 @@ class WSTC(object):
             )
 
     def ensemble(self, class_tree, level, input_shape, parent_output):
+        print(f"ENTER ensemble with level {level}")
+        print(f"ENTER ensemble with class_tree {class_tree.name}")
+        print(f"parent_output {parent_output}")
         outputs = []
         if class_tree.model:
+            print("class_tree.model: Ensemble part I")
             y_curr = class_tree.model(self.x)
+            print(f"y_curr {y_curr}")
             if parent_output is not None:
                 y_curr = Multiply()([parent_output, y_curr])
+                print(f"y_curr2 {y_curr}")
         else:
             y_curr = parent_output
 
         if level == 0:
             outputs.append(y_curr)
         else:
+            print("level !== 0 Ensemble part II")
             for i, child in enumerate(class_tree.children):
                 outputs += self.ensemble(
                     child, level - 1, input_shape, IndexLayer(i)(y_curr)
@@ -208,12 +215,17 @@ class WSTC(object):
 
     def ensemble_classifier(self, level):
         outputs = self.ensemble(self.class_tree, level, self.input_shape[1], None)
+        print(f"outputs {outputs}")
         outputs = [
             ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
             for output in outputs
         ]
+        print(f"outputs {outputs}")
         z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
-        return Model(inputs=self.x, outputs=z)
+        model = Model(inputs=self.x, outputs=z)
+        print(f"*******************Summary********************")
+        model.summary()
+        return model
 
     def pretrain(
         self,
@@ -382,7 +394,7 @@ class WSTC(object):
         level,
         maxiter=5e4,
         batch_size=256,
-        tol=0.25,  # 0.1
+        tol=3,  # 0.1
         power=2,
         update_interval=100,
         save_dir=None,
@@ -524,7 +536,7 @@ class WSTC(object):
                         print(
                             f"Fraction of documents with label changes: {np.round(delta_label/y_pred.shape[0]*100, 3)} %"
                         )
-
+                        tol = 10  # TODO:remove this
                         if delta_label / y_pred.shape[0] < tol / 100:
                             print(
                                 f"\nFraction: {np.round(delta_label / y_pred.shape[0] * 100, 3)} % < tol: {tol} %"

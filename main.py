@@ -7,7 +7,9 @@ np.random.seed(1234)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
-from models_BERT import WSTC
+from models import WSTC
+
+# from models_BERT import WSTC
 from utils import proceed_level, write_output
 from transformers import BertTokenizer
 

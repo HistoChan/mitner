@@ -233,7 +233,7 @@ def proceed_level(
                     num_doc,
                     interp_weight,
                     vocabulary_inv,
-                    None, #lm,
+                    None,  # lm,
                     common_words,
                     save_dir,
                 )
@@ -261,7 +261,7 @@ def proceed_level(
             # TODO: LSTM to BERT: check x
             # Convert data to string (since LSTM tokenizer is different from BERT's)
             wstc.pretrain(
-                x=[[vocabulary_inv[token] for token in seq] for seq in seed_docs],
+                x=seed_docs,  # [[vocabulary_inv[token] for token in seq] for seq in seed_docs],
                 pretrain_labels=seed_label,
                 model=parent.model,
                 optimizer=SGD(lr=0.1, momentum=0.9),

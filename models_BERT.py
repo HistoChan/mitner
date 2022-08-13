@@ -34,12 +34,13 @@ from scipy.stats import entropy
 
 from transformers import BertModel, BertPreTrainedModel, BertForSequenceClassification
 from transformers.modeling_outputs import SequenceClassifierOutput
+import torch
 from torch.optim import Adam
-from torch import nn
 from torch.nn import Dropout, Linear, Softmax, KLDivLoss
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler
 from load_data import load_data_BERT
+
 
 def LSTMLanguageModel(
     input_shape, word_embedding_dim, vocab_sz, hidden_dim, embedding_matrix
@@ -58,7 +59,6 @@ def LSTMLanguageModel(
     model = Model(inputs=x, outputs=z)
     model.summary()
     return Model(inputs=x, outputs=z)
-
 
 
 def CustomBERTClassifier(num_labels):
@@ -83,7 +83,7 @@ def get_KLDivLoss(logits, labels, num_labels, inclass, misclass):
     )
 
     # change the loss function to KLDIVLOSS
-    return loss_f(predict, actual)
+    return loss_f(predict.log(), actual)
 
 
 class WSTC(object):
@@ -152,32 +152,38 @@ class WSTC(object):
             class_tree.model = CustomBERTClassifier(num_children)
 
     def ensemble(self, class_tree, level, input_shape, parent_output):
+        print(f"ENTER ensemble with level {level}")
+        print(f"ENTER ensemble with class_tree {class_tree.name}")
+        print(f"parent_output {parent_output}")
         outputs = []
         if class_tree.model:
-            # y_curr = class_tree.model(self.x)
-            # if parent_output is not None:
-            #     y_curr = Multiply()([parent_output, y_curr])
-            print("Ensemble part I")
+            print("class_tree.model: Ensemble part I")
+            # TODO: here
+            y_curr = parent_output  # class_tree.model(self.x)
+            if parent_output is not None:
+                y_curr = Multiply()([parent_output, y_curr])
         else:
             y_curr = parent_output
 
         if level == 0:
             outputs.append(y_curr)
         else:
-            # for i, child in enumerate(class_tree.children):
-            #     outputs += self.ensemble(
-            #         child, level - 1, input_shape, IndexLayer(i)(y_curr)
-            #     )
-            print("Ensemble part II")
+            print("level !== 0 Ensemble part II")
+            for i, child in enumerate(class_tree.children):
+                outputs += self.ensemble(
+                    child, level - 1, input_shape, None  # IndexLayer(i)(y_curr)
+                )
         return outputs
 
     # TODO: Check if change?
     def ensemble_classifier(self, level):
         outputs = self.ensemble(self.class_tree, level, self.input_shape[1], None)
+        print(f"outputs {outputs}")
         outputs = [
             ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
             for output in outputs
         ]
+        print(f"outputs {outputs}")
         z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
         return Model(inputs=self.x, outputs=z)
 
@@ -196,10 +202,9 @@ class WSTC(object):
         save_dir=None,
         suffix="",
     ):
-        print(x[0][:5])
         optimizer = Adam(model.parameters(), lr=1e-5)
-        epochs = 3  # TODO: not hard code
-        batch_size = 16  # TODO: not hard code
+        epochs = 1  # 3 TODO: not hard code
+        batch_size = 1  # 16 TODO: not hard code
 
         inclass = max(pretrain_labels[0][:2])
         misclass = min(pretrain_labels[0][:2])
@@ -208,7 +213,7 @@ class WSTC(object):
         tokenizer = self.tokenizer
         tokenizer, input_ids, attention_masks = load_data_BERT(x, tokenizer)
         # output tensors
-        labels = np.argmax(pretrain_labels, axis=1).flatten()
+        labels = torch.tensor(np.argmax(pretrain_labels, axis=1).flatten())
         # Pack up as a dataset
         dataset = TensorDataset(input_ids, attention_masks, labels)
         train_dataloader = DataLoader(
@@ -223,11 +228,15 @@ class WSTC(object):
         t0 = time()
         print("\nPretraining...")
         for epoch_i in range(epochs):
+            total_train_loss = 0
             #               Training
             # Perform one full pass over the training set.
-            print("\n======== Epoch {:} / {:} ========".format(epoch_i + 1, EPOCHS))
+            print("\n======== Epoch {:} / {:} ========".format(epoch_i + 1, epochs))
             # For each batch of training data...
             for step, batch in enumerate(train_dataloader):
+                # TODO: Debug
+                if step > batch_size:
+                    break
                 # Progress update.
                 if step % batch_size == 0 and not step == 0:
                     # Report progress.
