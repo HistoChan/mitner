@@ -261,7 +261,9 @@ def proceed_level(
             # TODO: LSTM to BERT: check x
             # Convert data to string (since LSTM tokenizer is different from BERT's)
             wstc.pretrain(
-                x=seed_docs,  # [[vocabulary_inv[token] for token in seq] for seq in seed_docs],
+                x=[
+                    [vocabulary_inv[token] for token in seq] for seq in seed_docs
+                ],  # seed_docs
                 pretrain_labels=seed_label,
                 model=parent.model,
                 optimizer=SGD(lr=0.1, momentum=0.9),
@@ -277,18 +279,24 @@ def proceed_level(
     print("\n### Phase 3: self-training ###")
     # TODO: need change?
     selftrain_optimizer = SGD(lr=self_lr, momentum=0.9, decay=decay)
-    wstc.compile(level, optimizer=selftrain_optimizer, loss="kld")
-    y_pred = wstc.fit(
-        x,
-        level=level,
-        tol=delta,
-        maxiter=maxiter,
-        batch_size=batch_size,
-        update_interval=update_interval,
+    # wstc.compile(level, optimizer=selftrain_optimizer, loss="kld")
+    # y_pred = wstc.fit(
+    #     x,
+    #     level=level,
+    #     tol=delta,
+    #     maxiter=maxiter,
+    #     batch_size=batch_size,
+    #     update_interval=update_interval,
+    #     save_dir=save_dir,
+    # )
+    self_trained_model = wstc.distill(
+        x=[[vocabulary_inv[token] for token in seq] for seq in seed_docs],  # seed_docs
         save_dir=save_dir,
+        suffix=parent.name,
     )
+    print(self_trained_model)
     print(f"Self-training time: {time() - t0:.2f}s")
-    return y_pred
+    return self_trained_model  # y_pred
 
 
 def f1(y_true, y_pred):

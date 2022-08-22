@@ -36,10 +36,10 @@ from transformers import BertModel, BertPreTrainedModel, BertForSequenceClassifi
 from transformers.modeling_outputs import SequenceClassifierOutput
 import torch
 from torch.optim import Adam
-from torch.nn import Dropout, Linear, Softmax, KLDivLoss
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler
 from load_data import load_data_BERT
+from bert_modelling import get_bert_based, Distillator
 
 
 def LSTMLanguageModel(
@@ -59,31 +59,6 @@ def LSTMLanguageModel(
     model = Model(inputs=x, outputs=z)
     model.summary()
     return Model(inputs=x, outputs=z)
-
-
-def CustomBERTClassifier(num_labels):
-    return BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased",
-        num_labels=num_labels,  # The number of output labels
-        output_attentions=False,  # Whether the model returns attentions weights.
-        output_hidden_states=False,  # Whether the model returns all hidden-states.
-    )
-
-
-loss_f = KLDivLoss(reduction="batchmean")
-
-
-def get_KLDivLoss(logits, labels, num_labels, inclass, misclass):
-    predict = Softmax(dim=1)(logits)
-    actual = torch.Tensor(
-        [
-            [inclass if idx == l else misclass for idx in range(num_labels)]
-            for l in labels
-        ]
-    )
-
-    # change the loss function to KLDIVLOSS
-    return loss_f(predict.log(), actual)
 
 
 class WSTC(object):
@@ -146,10 +121,7 @@ class WSTC(object):
         if num_children <= 1:
             class_tree.model = None
         else:
-            # TODO: BERT
-            # Load BertForSequenceClassification, the pretrained BERT model with a single
-            # linear classification layer on top.
-            class_tree.model = CustomBERTClassifier(num_children)
+            class_tree.model = get_bert_based(num_labels=num_children, type="Bert")
 
     def ensemble(self, class_tree, level, input_shape, parent_output):
         print(f"ENTER ensemble with level {level}")
@@ -157,35 +129,38 @@ class WSTC(object):
         print(f"parent_output {parent_output}")
         outputs = []
         if class_tree.model:
-            print("class_tree.model: Ensemble part I")
-            # TODO: here
-            y_curr = parent_output  # class_tree.model(self.x)
-            if parent_output is not None:
-                y_curr = Multiply()([parent_output, y_curr])
-        else:
-            y_curr = parent_output
+            outputs = class_tree.model
+        # if class_tree.model:
+        #     print("class_tree.model: Ensemble part I")
+        #     # TODO: here
+        #     y_curr = parent_output  # class_tree.model(self.x)
+        #     if parent_output is not None:
+        #         y_curr = Multiply()([parent_output, y_curr])
+        # else:
+        #     y_curr = parent_output
 
-        if level == 0:
-            outputs.append(y_curr)
-        else:
-            print("level !== 0 Ensemble part II")
-            for i, child in enumerate(class_tree.children):
-                outputs += self.ensemble(
-                    child, level - 1, input_shape, None  # IndexLayer(i)(y_curr)
-                )
+        # if level == 0:
+        #     outputs.append(y_curr)
+        # else:
+        #     print("level !== 0 Ensemble part II")
+        #     for i, child in enumerate(class_tree.children):
+        #         outputs += self.ensemble(
+        #             child, level - 1, input_shape, None  # IndexLayer(i)(y_curr)
+        #         )
         return outputs
 
     # TODO: Check if change?
     def ensemble_classifier(self, level):
         outputs = self.ensemble(self.class_tree, level, self.input_shape[1], None)
-        print(f"outputs {outputs}")
-        outputs = [
-            ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
-            for output in outputs
-        ]
-        print(f"outputs {outputs}")
-        z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
-        return Model(inputs=self.x, outputs=z)
+        # print(f"outputs {outputs}")
+        # outputs = [
+        #     ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
+        #     for output in outputs
+        # ]
+        # print(f"outputs {outputs}")
+        # z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
+        # return Model(inputs=self.x, outputs=z)
+        return outputs
 
     # TODO: LSTM to BERTensemble_classifier
     # Since the BERT Classifier is already pre-trained, this part would be
@@ -202,18 +177,31 @@ class WSTC(object):
         save_dir=None,
         suffix="",
     ):
-        optimizer = Adam(model.parameters(), lr=1e-5)
-        epochs = 1  # 3 TODO: not hard code
-        batch_size = 1  # 16 TODO: not hard code
+        # import torch
 
-        inclass = max(pretrain_labels[0][:2])
-        misclass = min(pretrain_labels[0][:2])
+        # param_groups = torch.load(f"{save_dir}/pretrained_bert_{suffix}.pt")
+        # from bert_modelling import get_bert_based, load_bert_parameters
+
+        # model = get_bert_based()
+        # model = load_bert_parameters(model, param_groups)
+
+        """Testing end here"""
+
+        optimizer = Adam(model.parameters(), lr=1e-5)
+        epochs = 3  # TODO: not hard code
+        batch_size = 16  # TODO: not hard code
 
         # input tensors
         tokenizer = self.tokenizer
         tokenizer, input_ids, attention_masks = load_data_BERT(x, tokenizer)
-        # output tensors
-        labels = torch.tensor(np.argmax(pretrain_labels, axis=1).flatten())
+
+        is_hard_label = False
+        if is_hard_label:
+            # output tensors
+            labels = torch.tensor(np.argmax(pretrain_labels, axis=1).flatten())
+        else:
+            labels = torch.tensor(pretrain_labels)
+
         # Pack up as a dataset
         dataset = TensorDataset(input_ids, attention_masks, labels)
         train_dataloader = DataLoader(
@@ -235,7 +223,7 @@ class WSTC(object):
             # For each batch of training data...
             for step, batch in enumerate(train_dataloader):
                 # TODO: Debug
-                if step > batch_size:
+                if step >= batch_size:
                     break
                 # Progress update.
                 if step % batch_size == 0 and not step == 0:
@@ -250,9 +238,7 @@ class WSTC(object):
                 batch_input_mask = batch[1].to(device)
                 batch_labels = batch[2].to(device)
 
-                # Always clear any previously calculated gradients before performing a
-                # backward pass. PyTorch doesn't do this automatically because
-                # accumulating the gradients is "convenient while training RNNs".
+                # Always clear any previously calculated gradients before performing a backward pass.
                 model.zero_grad()
 
                 outputs = model(
@@ -261,23 +247,16 @@ class WSTC(object):
                     attention_mask=batch_input_mask,
                     labels=batch_labels,
                 )
-                logits = outputs[1]
-                # calculate loss manually
-                loss = get_KLDivLoss(
-                    logits, batch_labels, model.num_labels, inclass, misclass
-                )
-                total_train_loss += loss.item()
-
+                loss = outputs[0]
                 # Perform a backward pass to calculate the gradients.
                 loss.backward()
+                total_train_loss += loss.item()
 
                 # Clip the norm of the gradients to 1.0.
                 # This is to help prevent the "exploding gradients" problem.
                 clip_grad_norm_(model.parameters(), 1.0)
 
                 # Update parameters and take a step using the computed gradient.
-                # The optimizer dictates the "update rule"--how the parameters are
-                # modified based on their gradients, the learning rate, etc.
                 optimizer.step()
 
             # Calculate the average loss over all of the batches.
@@ -430,6 +409,117 @@ class WSTC(object):
         # print(f"\nLevel {level} model summary: ")
         # self.model[level].summary()
 
+    def distill(
+        self,
+        x,
+        save_dir=None,
+        suffix="",
+    ):
+        print("Initializing knowledge distillation...")
+        distillator = Distillator(self.model[0], temperature=2.0)
+        num_labels = self.model[0].config.num_labels
+
+        optimizer = Adam(distillator.student.parameters(), lr=1e-5)
+        epochs = 3  # TODO: not hard code
+        batch_size = 16  # TODO: not hard code
+
+        # input tensors
+        tokenizer = self.tokenizer
+        tokenizer, input_ids, attention_masks = load_data_BERT(x, tokenizer)
+
+        # Pack up as a dataset
+        dataset = TensorDataset(input_ids, attention_masks)
+        train_dataloader = DataLoader(
+            dataset, sampler=RandomSampler(dataset), batch_size=batch_size
+        )
+
+        # Tell pytorch to run this model.
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("device:", device)
+
+        t0 = time()
+        print("\nPretraining...")
+        for epoch_i in range(epochs):
+            # Tell pytorch to run this model.
+            distillator.student = distillator.student.to(device)
+            total_train_loss = 0
+            #               Training
+            # Perform one full pass over the training set.
+            print("\n======== Epoch {:} / {:} ========".format(epoch_i + 1, epochs))
+            # For each batch of training data...
+            for step, batch in enumerate(train_dataloader):
+                # TODO: Debug
+                if step > batch_size:
+                    break
+                # Progress update.
+                if step % batch_size == 0 and not step == 0:
+                    # Report progress.
+                    print(
+                        "  Batch {:>5,}  of  {:>5,}.".format(
+                            step, len(train_dataloader)
+                        )
+                    )
+
+                batch_input_ids = batch[0].to(device)
+                batch_input_mask = batch[1].to(device)
+                # batch_labels = batch[2].to(device)
+
+                # Always clear any previously calculated gradients before performing a backward pass.
+                distillator.student.zero_grad()
+
+                distillator.teacher.eval()
+                teacher_outputs = distillator.teacher(
+                    batch_input_ids,
+                    attention_mask=batch_input_mask,
+                )
+                teacher_logits = teacher_outputs[0]
+
+                distillator.student.train()
+                student_outputs = distillator.student(
+                    batch_input_ids,
+                    attention_mask=batch_input_mask,
+                    labels=teacher_logits.softmax(1),  # TODO: check this
+                )
+                student_logits = student_outputs[1]
+                print("loss1", student_outputs[0])
+                loss = distillator.distillation_loss(teacher_logits, student_logits)
+                print("loss2", loss)
+
+                # Perform a backward pass to calculate the gradients.
+                loss.backward()
+                total_train_loss += loss.item()
+
+                # Clip the norm of the gradients to 1.0.
+                # This is to help prevent the "exploding gradients" problem.
+                clip_grad_norm_(distillator.student.parameters(), 1.0)
+
+                # Update parameters and take a step using the computed gradient.
+                optimizer.step()
+
+            # Calculate the average loss over all of the batches.
+            avg_train_loss = total_train_loss / len(train_dataloader)
+
+            # Measure how long this epoch took.
+            print("  Average training loss: {0:.2f}".format(avg_train_loss))
+            print(f"Pretraining time: {time() - t0:.2f}s")
+
+            # Update teacher
+            distillator.teacher = distillator.student
+            # for the last epoch, use DisilBert to minimize the size
+            new_student_type = "DistilBert" if epochs - 2 == epoch_i else "Bert"
+            distillator.student = get_bert_based(
+                num_labels=num_labels, type=new_student_type
+            )
+
+        if save_dir is not None:
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+            torch.save(
+                distillator.student.state_dict(),
+                f"{save_dir}/self-trained_bert_{suffix}.pt",
+            )
+        pass
+
     def fit(
         self,
         x,
@@ -443,6 +533,7 @@ class WSTC(object):
         save_suffix="",
     ):
         print("fitting...")
+
         """model = self.model[level]
         print(f"Update interval: {update_interval}")
 

@@ -78,24 +78,32 @@ def read_file(dataset, with_eval="All"):
 
 
 def clean_str(string):
-    string = re.sub(r"[^A-Za-z0-9(),.!?\"\'-]", " ", string)
-    string = re.sub(r"\'s", " 's", string)
-    string = re.sub(r"\"", ' " ', string)
-    string = re.sub(r"\'ve", " 've", string)
-    string = re.sub(r"n\'t", " n't", string)
-    string = re.sub(r"\'m", " 'm", string)
-    string = re.sub(r"\'re", " 're", string)
-    string = re.sub(r"\'d", " 'd", string)
-    string = re.sub(r"\'ll", " 'll", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"\.", " . ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\$", " $ ", string)
-    string = re.sub(r"\(", " \( ", string)
-    string = re.sub(r"\)", " \) ", string)
-    string = re.sub(r"\?", " \? ", string)
-    string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().lower()
+    # do not clean the special tokens "[SEP]" for bert
+    substrings = string.split("[SEP]")
+
+    def str_sub(string):
+        string = re.sub(r"[^A-Za-z0-9(),.!?\"\'-]", " ", string)
+        string = re.sub(r"\'s", " 's", string)
+        string = re.sub(r"\"", ' " ', string)
+        string = re.sub(r"\'ve", " 've", string)
+        string = re.sub(r"n\'t", " n't", string)
+        string = re.sub(r"\'m", " 'm", string)
+        string = re.sub(r"\'re", " 're", string)
+        string = re.sub(r"\'d", " 'd", string)
+        string = re.sub(r"\'ll", " 'll", string)
+        string = re.sub(r",", " , ", string)
+        string = re.sub(r"\.", " . ", string)
+        string = re.sub(r"!", " ! ", string)
+        string = re.sub(r"\$", " $ ", string)
+        string = re.sub(r"\(", " \( ", string)
+        string = re.sub(r"\)", " \) ", string)
+        string = re.sub(r"\?", " \? ", string)
+        string = re.sub(r"\s{2,}", " ", string)
+        return string.strip().lower()
+
+    cleaned_substrings = [str_sub(substr) for substr in substrings]
+
+    return "[SEP]".join(cleaned_substrings)
 
 
 def preprocess_doc(data):
@@ -420,6 +428,6 @@ def load_data_BERT(data, tokenizer):
     trun_data = [s[: truncate_doc_len - 2] for s in data]
     print(f"Defined maximum document length: {truncate_doc_len} (words)")
 
-    tokenizer = extend_tokenizer(trun_data, tokenizer)
+    # tokenizer = extend_tokenizer(trun_data, tokenizer)
     input_ids, attention_masks = create_tensors(data, tokenizer, truncate_doc_len)
     return (tokenizer, input_ids, attention_masks)
