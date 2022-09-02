@@ -3,37 +3,47 @@ from transformers import (
     DistilBertForSequenceClassification,
 )
 import torch
+from torch import unsqueeze, squeeze, bmm
 from torch.nn import (
     Module,
     CrossEntropyLoss,
     KLDivLoss,
+    CosineEmbeddingLoss,
     Softmax,
     ReLU,
     MultiheadAttention,
 )
-import numpy as np
+
+# import numpy as np
+
+# Global loss function. Declare once use many times.
+kl_loss_func = KLDivLoss(reduction="batchmean")
+ce_loss_func = CrossEntropyLoss()
+cos_loss_func = CosineEmbeddingLoss(reduction="mean")
 
 
 def get_loss(predict, label):
     # Unity type: Float to Double
     predict = predict.double()
     label = label.double()
-    print(predict, label)
 
     if label.shape == predict.shape:
         predict = predict.log()
-        loss_fct = KLDivLoss(reduction="batchmean")
+        loss_fct = kl_loss_func
     else:
-        loss_fct = CrossEntropyLoss()
+        loss_fct = ce_loss_func
     loss = loss_fct(predict, label)
-    return loss.double()
+    return loss
 
 
 class CustomBERTClassifier(BertForSequenceClassification):
-    def __init__(self, config, class_embedding=None):
+    def __init__(self, config, class_embedding=None, device="cpu"):
         super().__init__(config)
-        self.class_embedding = class_embedding
-        self.multihead_attn = MultiheadAttention(768, 12)
+        self.class_embedding = (
+            class_embedding.to(device) if class_embedding is not None else None
+        )
+        if self.class_embedding is not None:
+            self.multihead_attn = MultiheadAttention(768, 12).to(device)
 
     def forward(
         self,
@@ -44,7 +54,6 @@ class CustomBERTClassifier(BertForSequenceClassification):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
-        label_mask=None,
     ):
 
         outputs = self.bert(
@@ -60,12 +69,29 @@ class CustomBERTClassifier(BertForSequenceClassification):
 
         pooled_output = self.dropout(pooled_output)
 
-        # TODO: multihead attention
-        # query = pooled_output.view(1, 1, 768)
-        # key_value = self.class_embedding.view(5, 1, 768)
-        # pooled_output = self.multihead_attn(query, key_value, key_value)
-
-        logits = self.classifier(pooled_output)
+        if self.class_embedding is not None:
+            # use multihead attention: from SpanNER - biencoder.py - get_scores
+            batch_size = pooled_output.size(0)
+            query = pooled_output.unsqueeze(1)  # (batch size, 1, embed_dim)
+            scores = []
+            for idx in range(self.num_labels):  # per each class
+                embedding_candidate = (
+                    self.class_embedding[idx, :].unsqueeze(0).repeat(batch_size, 1)
+                )
+                key = embedding_candidate.unsqueeze(1)  # (batch size, 1, embed_dim)
+                embedding_candidate, _ = self.multihead_attn(
+                    query, key, key
+                )  # drop the weight
+                embedding_candidate = embedding_candidate.squeeze().unsqueeze(
+                    2
+                )  # num_mention_in_batch x embed_size x 1
+                score = bmm(query, embedding_candidate)  # num_mention_in_batch x 1 x 1
+                score = squeeze(score).unsqueeze(-1)  # (batch size, 1)
+                scores.append(score)
+            logits = torch.cat(scores, dim=-1)  # (batch size, num_label)
+        else:
+            # use Linear classifier
+            logits = self.classifier(pooled_output)
 
         # add hidden states and attention if they are here
         outputs = (logits,) + outputs[2:]
@@ -80,28 +106,21 @@ class CustomBERTClassifier(BertForSequenceClassification):
 
 # Another version using DistilBERT
 class CustomDistilBERTClassifier(DistilBertForSequenceClassification):
-    def __init__(self, config, class_embedding=None):
+    def __init__(self, config, class_embedding=None, device="cpu"):
         super().__init__(config)
-        self.class_embedding = class_embedding
-        self.multihead_attn = MultiheadAttention(768, 12)
+        self.class_embedding = (
+            class_embedding.to(device) if class_embedding is not None else None
+        )
+        if self.class_embedding is not None:
+            self.multihead_attn = MultiheadAttention(768, 12).to(device)
 
     def forward(
         self,
         input_ids=None,
         attention_mask=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
         labels=None,
-        label_mask=None,
     ):
-        print(input_ids.shape)
-        outputs = self.distilbert(
-            input_ids,
-            attention_mask=attention_mask,
-            # head_mask=head_mask,
-            # inputs_embeds=inputs_embeds,
-        )
+        outputs = self.distilbert(input_ids, attention_mask=attention_mask)
 
         # Similar as the DistilBertForSequenceClassification
         hidden_state = outputs[0]  # (bs, seq_len, dim)
@@ -110,17 +129,34 @@ class CustomDistilBERTClassifier(DistilBertForSequenceClassification):
         pooled_output = ReLU()(pooled_output)  # (bs, dim)
         pooled_output = self.dropout(pooled_output)  # (bs, dim)
 
-        # TODO: multihead attention
-        # query = pooled_output.view(1, 1, 768)
-        # key_value = self.class_embedding.view(5, 1, 768)
-        # pooled_output = self.multihead_attn(query, key_value, key_value)
-
-        logits = self.classifier(pooled_output)
+        # multihead attention
+        if self.class_embedding is not None:
+            # use multihead attention: from SpanNER - biencoder.py - get_scores
+            batch_size = pooled_output.size(0)
+            query = pooled_output.unsqueeze(1)  # (batch size, 1, embed_dim)
+            scores = []
+            for idx in range(self.num_labels):  # per each class
+                embedding_candidate = (
+                    self.class_embedding[idx, :].unsqueeze(0).repeat(batch_size, 1)
+                )
+                key = embedding_candidate.unsqueeze(1)  # (batch size, 1, embed_dim)
+                embedding_candidate, _ = self.multihead_attn(
+                    query, key, key
+                )  # drop the weight
+                embedding_candidate = embedding_candidate.squeeze().unsqueeze(
+                    2
+                )  # num_mention_in_batch x embed_size x 1
+                score = bmm(query, embedding_candidate)  # num_mention_in_batch x 1 x 1
+                score = squeeze(score).unsqueeze(-1)  # (batch size, 1)
+                scores.append(score)
+            logits = torch.cat(scores, dim=-1)  # (batch size, num_label)
+        else:
+            # use Linear classifier
+            logits = self.classifier(pooled_output)
 
         # add hidden states and attention if they are here
         outputs = (logits,) + outputs[2:]
         loss = None
-        print("INIT LOSS")
         if labels is not None:
             if labels.shape == logits.shape:
                 logits = Softmax(dim=1)(logits)
@@ -143,22 +179,31 @@ class CustomDistilBERTClassifier(DistilBertForSequenceClassification):
 """
 
 
-def get_bert_based(num_hidden_layers=12, num_labels=2, type="Bert"):
-    if type == "Bert":
+def get_bert_based(
+    num_hidden_layers=12,
+    num_labels=2,
+    model_type="Bert",
+    class_embedding=None,
+    device="cpu",
+):
+    if model_type == "Bert":
         model = CustomBERTClassifier.from_pretrained(
             "bert-base-uncased",
             num_hidden_layers=num_hidden_layers,
             num_labels=num_labels,  # The number of output labels
             output_attentions=False,  # Whether the model returns attentions weights.
             output_hidden_states=False,  # Whether the model returns all hidden-states.
+            class_embedding=class_embedding,
+            device=device,
         )
-    elif type == "DistilBert":
+    elif model_type == "DistilBert":
         model = CustomDistilBERTClassifier.from_pretrained(
             "distilbert-base-uncased",
-            # num_hidden_layers=num_hidden_layers,
             num_labels=num_labels,  # The number of output labels
             output_attentions=False,  # Whether the model returns attentions weights.
             output_hidden_states=False,  # Whether the model returns all hidden-states.
+            class_embedding=class_embedding,
+            device=device,
         )
     else:
         model = None  # ERROR
@@ -217,15 +262,44 @@ def load_bert_parameters(model, param_groups):
     return model
 
 
-class Distillator(Module):
-    def __init__(self, teacher, temperature=1.0):
+class Distiller(Module):
+    def __init__(self, teacher, temperature=1.0, device="cpu"):
         super().__init__()
-        self.teacher = teacher  # in BERT
-        self.student = get_bert_based(num_labels=teacher.config.num_labels, type="Bert")
+        self.device = device
+        self.teacher = teacher.to(device)  # in BERT
+        self.student = get_bert_based(
+            num_labels=teacher.num_labels,
+            model_type="DistilBert",
+            class_embedding=teacher.class_embedding,
+            device=device,
+        ).to(device)
         # self.student = load_bert_parameters(self.student, teacher.state_dict())
         self.temperature = temperature
+
+    def update_teacher(self):
+        self.teacher = self.student.to(self.device)
+        self.student = get_bert_based(
+            num_labels=self.teacher.num_labels,
+            model_type="DistilBert",
+            class_embedding=self.teacher.class_embedding,
+            device=self.device,
+        ).to(self.device)
 
     def distillation_loss(self, teacher_logits, student_logits):
         teacher_logits_temp = (teacher_logits / self.temperature).softmax(1)
         student_logits_temp = (student_logits / self.temperature).softmax(1)
-        return get_loss(student_logits_temp, teacher_logits_temp)
+        coefficient = self.temperature ** 2
+        return coefficient * get_loss(student_logits_temp, teacher_logits_temp)
+
+    def cosine_embedding_loss(self, teacher_logits, student_logits):
+        target = student_logits.new(student_logits.size(0)).fill_(1)
+        return cos_loss_func(student_logits, teacher_logits, target)
+
+    def get_total_loss(self, teacher_logits, student_logits, train_loss=None):
+        loss = self.distillation_loss(teacher_logits, student_logits)
+        loss += self.cosine_embedding_loss(teacher_logits, student_logits)
+        if train_loss is None:
+            return loss / 2
+        else:
+            loss += train_loss
+            return loss / 3

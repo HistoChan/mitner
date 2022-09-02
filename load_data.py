@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import csv
 import os
 import re
 import itertools
@@ -14,7 +15,11 @@ from sklearn.feature_extraction.text import (
     TfidfVectorizer,
 )
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from transformers import BertTokenizer, BertModel
 from tree import ClassNode
+
+BERT_TRUNCATE_LENGTH = 512
+MODEL_TYPE = "bert-base-uncased"
 
 
 def read_file(dataset, with_eval="All"):
@@ -395,7 +400,7 @@ def extend_tokenizer(trun_data, tokenizer):
     return tokenizer
 
 
-def create_tensors(data, tokenizer, truncate_doc_len=512):
+def create_tensors(data, tokenizer, truncate_doc_len=BERT_TRUNCATE_LENGTH):
     # create_tensors
     input_ids = []
     attention_masks = []
@@ -419,15 +424,78 @@ def create_tensors(data, tokenizer, truncate_doc_len=512):
     return (input_ids, attention_masks)
 
 
-def load_data_BERT(data, tokenizer):
-    truncate_doc_len = 512
+def load_data_BERT(dataset_name, tokenizer):
+    truncate_doc_len = BERT_TRUNCATE_LENGTH
 
-    # data, _, _ = read_file(data, with_eval=with_eval)
-    # data = preprocess_doc(data)
+    data, _, _ = read_file(dataset_name)
+    data = preprocess_doc(data)
     # split_data = [s.split(" ") for s in data]
-    trun_data = [s[: truncate_doc_len - 2] for s in data]
     print(f"Defined maximum document length: {truncate_doc_len} (words)")
 
     # tokenizer = extend_tokenizer(trun_data, tokenizer)
     input_ids, attention_masks = create_tensors(data, tokenizer, truncate_doc_len)
     return (tokenizer, input_ids, attention_masks)
+
+
+def convert_LSTM_token_to_text(seed_docs, vocabulary_inv):
+    padding_token = 0  # padding_word = "<PAD/>"
+
+    texts = [
+        [vocabulary_inv[token] for token in seq if token != padding_token]
+        for seq in seed_docs
+    ]
+    return texts
+
+
+def add_embedding_class_description(class_tree, dataset="nyt", def_source="wiki"):
+    truncate_doc_len = BERT_TRUNCATE_LENGTH
+
+    description_dir = f"./{dataset}/label_def.csv"
+    tokenizer = BertTokenizer.from_pretrained(MODEL_TYPE)
+
+    cls_def = {}
+
+    with open(description_dir, "r", encoding="utf-8") as description_file:
+        reader = csv.reader(description_file)
+        next(reader)  # header
+        for row in reader:
+            # use wiki or dictionary
+            definition = row[1] if def_source == "wiki" else row[2]
+            data = preprocess_doc(definition)
+            data = definition.split(" ")
+            trun_data = data[: truncate_doc_len - 2]
+            cls_def[row[0]] = trun_data
+            # print(trun_data)
+    input_ids, attention_masks = create_tensors(
+        cls_def.values(), tokenizer, truncate_doc_len
+    )
+
+    model = BertModel.from_pretrained(
+        MODEL_TYPE,
+        output_attentions=False,  # Whether the model returns attentions weights.
+        output_hidden_states=False,  # Whether the model returns all hidden-states.
+    )
+
+    model.eval()
+    with torch.no_grad():
+        outputs = model(input_ids, attention_masks)
+        embedding = outputs[1]
+
+    cls_embedding = dict(zip(cls_def.keys(), embedding))
+
+    def fill_in_BERT_embedding(embedding_dict, tree):
+        # fill in embedding
+        if tree.label > -1:  # self is not ROOT
+            assert tree.name in embedding_dict
+            tree.embedding_BERT = embedding_dict[tree.name]
+
+        # recursion
+        # no need to return the tree as python is "pass-by-object-reference"
+        for child in tree.children:
+            fill_in_BERT_embedding(embedding_dict, child)
+
+    fill_in_BERT_embedding(cls_embedding, class_tree)
+
+    # output_dir = f"./{dataset}/label_embedding.pkl"
+    # with open(output_dir, "wb") as outp:
+    #     pickle.dump(cls_embedding, outp, pickle.HIGHEST_PROTOCOL)

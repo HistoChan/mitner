@@ -251,23 +251,23 @@ def lstm_pseudodocs(
     embedding_mat = parent_node.embedding
     n_classes = len(relevant_nodes)
 
-    # for i in range(len(embedding_mat)):
-    #     embedding_mat[i] = embedding_mat[i] / np.linalg.norm(embedding_mat[i])
+    for i in range(len(embedding_mat)):
+        embedding_mat[i] = embedding_mat[i] / np.linalg.norm(embedding_mat[i])
 
-    # centers, kappas, weights = label_expansion(
-    #     relevant_nodes, save_dir, vocabulary_inv, embedding_mat, expand_num
-    # )
+    centers, kappas, weights = label_expansion(
+        relevant_nodes, save_dir, vocabulary_inv, embedding_mat, expand_num
+    )
 
     seed_words = []
-    # for i in range(n_classes):
-    #     center = centers[i]
-    #     kappa = kappas[i]
-    #     weight = weights[i]
-    #     # discourses = sample_mix_vMF(center, kappa, weight, num_doc*num_sent)
-    #     discourses = sample_mix_vMF(center, kappa, weight, num_doc)
-    #     prob_mat = np.dot(discourses, embedding_mat.transpose())
-    #     seeds = np.argmax(prob_mat, axis=1)
-    #     seed_words.append(seeds)
+    for i in range(n_classes):
+        center = centers[i]
+        kappa = kappas[i]
+        weight = weights[i]
+        # discourses = sample_mix_vMF(center, kappa, weight, num_doc*num_sent)
+        discourses = sample_mix_vMF(center, kappa, weight, num_doc)
+        prob_mat = np.dot(discourses, embedding_mat.transpose())
+        seeds = np.argmax(prob_mat, axis=1)
+        seed_words.append(seeds)
 
     doc_len = int(len_avg)
     num_sent = int(np.ceil(doc_len / sent_length))
@@ -277,7 +277,7 @@ def lstm_pseudodocs(
         docs_class = gen_with_seeds(
             relevant_nodes[i].name,
             lm,
-            "Nth", # seed_words[i],
+            seed_words[i],
             doc_len,
             sent_length,
             common_words,
@@ -289,8 +289,6 @@ def lstm_pseudodocs(
             label[i * num_doc + j] = interp_weight / n_classes * np.ones(n_classes)
             label[i * num_doc + j][i] += 1 - interp_weight
 
-    print(len(docs), len(docs[0]))
-    print(len(label), len(label[0]))
     return docs, label
 
 
@@ -321,7 +319,7 @@ def gen_with_seeds(
         print(f"Loading pseudodocs for class {class_name}...")
         f = open(os.path.join(save_dir, f"{class_name}_pseudo_docs.pkl"), "rb")
         cur_seq = pickle.load(f)
-        if (len(seeds) == len(cur_seq) and doc_len == len(cur_seq[0])):
+        if len(seeds) == len(cur_seq) and doc_len == len(cur_seq[0]):
             print("Pseudodocs are suitable for this training process!")
         else:
             print("Regenerate pseudodocs...")

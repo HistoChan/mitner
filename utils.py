@@ -3,12 +3,12 @@ import numpy as np
 np.random.seed(1234)
 import os
 from gensim.models import word2vec
-from gen import augment, bow_pseudodocs, lstm_pseudodocs
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.metrics import f1_score
 from time import time
+import torch
 
 
 def train_lstm(
@@ -29,7 +29,7 @@ def train_lstm(
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    from models import LSTMLanguageModel
+    from models_LSTM import LSTMLanguageModel
 
     model_name = save_path + "/model-final.h5"
     model = LSTMLanguageModel(
@@ -142,33 +142,17 @@ def train_class_embedding(
 
 
 def proceed_level(
-    x,
-    sequences,
     wstc,
     args,
     pretrain_epochs,
-    self_lr,
-    decay,
-    update_interval,
-    delta,
     class_tree,
     level,
-    expand_num,
-    background_array,
-    doc_length,
-    sent_length,
-    len_avg,
-    len_std,
-    num_doc,
-    interp_weight,
-    vocabulary_inv,
-    common_words,
+    need_step2,
+    use_multihead,
 ):
     print(f"\n### Proceeding level {level} ###")
     dataset = args.dataset
     sup_source = args.sup_source
-    maxiter = args.maxiter.split(",")
-    maxiter = int(maxiter[level])
     batch_size = args.batch_size
     parents = class_tree.find_at_level(level)
     parents_names = [parent.name for parent in parents]
@@ -177,126 +161,75 @@ def proceed_level(
     for parent in parents:
         # initialize classifiers in hierarchy
         print("\n### Input preparation ###")
-
-        if class_tree.embedding is None:
-            train_class_embedding(
-                x, vocabulary_inv, dataset_name=args.dataset, node=class_tree
-            )
-        parent.embedding = class_tree.embedding
-        wstc.instantiate(class_tree=parent)
+        wstc.instantiate(class_tree=parent, use_class_embedding=use_multihead)
 
         save_dir = f"./results/{dataset}/{sup_source}/level_{level}"
 
         if parent.model is not None:
+            # load pseudo_docs with labels
+            seed_docs_labels = []
+            with open(
+                os.path.join(save_dir, f"{parent.name}_pseudo_docs_labels.pkl"),
+                "rb",
+            ) as f:
+                seed_docs_labels = pickle.load(f)
 
-            print(
-                "\n### Phase 1: vMF distribution fitting & pseudo document generation ###"
-            )
+            perm_seed_docs_labels = np.random.permutation(seed_docs_labels)
+            seed_docs, seed_label = zip(*perm_seed_docs_labels)
+            seed_docs = list(seed_docs)
+            seed_label = list(seed_label)
 
-            if args.pseudo == "bow":
-                print("Pseudo documents generation (Method: Bag-of-words)...")
-                seed_docs, seed_label = bow_pseudodocs(
-                    parent.children,
-                    expand_num,
-                    background_array,
-                    doc_length,
-                    len_avg,
-                    len_std,
-                    num_doc,
-                    interp_weight,
-                    vocabulary_inv,
-                    parent.embedding,
-                    save_dir,
-                )
-            elif args.pseudo == "lstm":
-                print("Pseudo documents generation (Method: LSTM language model)...")
-                # relative_nodes_names = [n.name for n in parent.children]
-                # for class_name in relative_nodes_names:
-                #     if os.path.exists(os.path.join(save_dir, f"{class_name}_pseudo_docs.pkl")):
-                #         print(f"Loading pseudodocs for class {class_name}...")
-                #         f = open(os.path.join(save_dir, f"{class_name}_pseudo_docs.pkl"), "rb")
-                #         cur_seq = pickle.load(f)
-                # lm = train_lstm(
-                #     sequences,
-                #     common_words,
-                #     sent_length,
-                #     f"./{dataset}/lm",
-                #     embedding_matrix=class_tree.embedding,
-                # )
-                seed_docs, seed_label = lstm_pseudodocs(
-                    parent,
-                    expand_num,
-                    doc_length,
-                    len_avg,
-                    sent_length,
-                    len_std,
-                    num_doc,
-                    interp_weight,
-                    vocabulary_inv,
-                    None,  # lm,
-                    common_words,
-                    save_dir,
-                )
+            # TODO: Remove hard code
+            pretrain_epochs = 3
+            batch_size = 16
 
-            print("Finished pseudo documents generation.")
-            num_real_doc = len(seed_docs) / 5
-
-            if sup_source == "docs":
-                real_seed_docs, real_seed_label = augment(
-                    x, parent.children, num_real_doc
-                )
-                print(
-                    f"Labeled docs {len(real_seed_docs)} + Pseudo docs {len(seed_docs)}"
-                )
-                seed_docs = np.concatenate((seed_docs, real_seed_docs), axis=0)
-                seed_label = np.concatenate((seed_label, real_seed_label), axis=0)
-
-            perm = np.random.permutation(len(seed_label))
-            seed_docs = seed_docs[perm]
-            seed_label = seed_label[perm]
-
-            print("\n### Phase 2: pre-training with pseudo documents ###")
+            print("\n### Phase 1: pre-training with pseudo documents ###")
             print(f"Pretraining node {parent.name}")
 
-            # TODO: LSTM to BERT: check x
-            # Convert data to string (since LSTM tokenizer is different from BERT's)
             wstc.pretrain(
-                x=[
-                    [vocabulary_inv[token] for token in seq] for seq in seed_docs
-                ],  # seed_docs
+                x=seed_docs,
                 pretrain_labels=seed_label,
                 model=parent.model,
-                optimizer=SGD(lr=0.1, momentum=0.9),
                 epochs=pretrain_epochs,
                 batch_size=batch_size,
-                save_dir=save_dir,
-                suffix=parent.name,
             )
 
-    global_classifier = wstc.ensemble_classifier(level)
-    wstc.model.append(global_classifier)
-    t0 = time()
-    print("\n### Phase 3: self-training ###")
-    # TODO: need change?
-    selftrain_optimizer = SGD(lr=self_lr, momentum=0.9, decay=decay)
-    # wstc.compile(level, optimizer=selftrain_optimizer, loss="kld")
-    # y_pred = wstc.fit(
-    #     x,
-    #     level=level,
-    #     tol=delta,
-    #     maxiter=maxiter,
-    #     batch_size=batch_size,
-    #     update_interval=update_interval,
-    #     save_dir=save_dir,
-    # )
-    self_trained_model = wstc.distill(
-        x=[[vocabulary_inv[token] for token in seq] for seq in seed_docs],  # seed_docs
-        save_dir=save_dir,
-        suffix=parent.name,
-    )
-    print(self_trained_model)
-    print(f"Self-training time: {time() - t0:.2f}s")
-    return self_trained_model  # y_pred
+            if need_step2:
+                print("\n### Phase 2: self-training ###")
+                distilled_model = wstc.distill(
+                    x=seed_docs,
+                    pretrain_labels=seed_label,
+                    model=parent.model,
+                    epochs=pretrain_epochs,
+                    batch_size=batch_size,
+                )
+                parent.model = distilled_model
+
+            # save the model
+            if save_dir is not None:
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
+                torch.save(
+                    parent.model.state_dict(), f"{save_dir}/bert_{parent.name}.pt"
+                )
+
+
+def probabilities_dot_product(all_logits, batch_size):
+    # dot product
+    s = [all_logits[0][0].softmax(1)]
+    for lv in range(len(all_logits) - 1):
+        child_num_node = len(all_logits[lv + 1])
+        tmp_s = [[None for _ in range(batch_size)] for _ in range(child_num_node)]
+        for b in range(batch_size):
+            for idx in range(child_num_node):
+                product = torch.mul(
+                    s[lv][b][idx], all_logits[lv + 1][idx][b].softmax(0)
+                )
+                tmp_s[idx][b] = product
+        for idx in range(child_num_node):
+            tmp_s[idx] = torch.stack(tmp_s[idx], 0)
+        s.append(torch.cat(tmp_s, 1))
+    return s
 
 
 def f1(y_true, y_pred):
@@ -310,15 +243,23 @@ def write_output(y_pred, perm, class_tree, write_path):
     invperm = np.zeros(len(perm), dtype="int32")
     for i, v in enumerate(perm):
         invperm[v] = i
-    y_pred = y_pred[invperm]
+    y_pred = np.array(y_pred)[invperm]
     label2name = {}
     for i in range(class_tree.get_size() - 1):
         label2name[i] = class_tree.find(i).name
+
+    def get_all_labels(leaf_label):
+        ancestors = class_tree.find(leaf_label).find_ancestors()
+        ancestors.reverse()
+        ancestors_names = [a.name for a in ancestors]
+        ancestors_names.append(label2name[leaf_label])
+        return ancestors_names
+
     with open(os.path.join(write_path, "out.txt"), "w") as f:
-        for val in y_pred:
-            labels = np.nonzero(val)[0]
+        for label in y_pred:
+            labels = get_all_labels(label)
             if len(labels) > 0:
-                out_str = "\t".join([label2name[label] for label in labels])
+                out_str = "\t".join(labels)
             else:
                 out_str = class_tree.name
             f.write(out_str + "\n")

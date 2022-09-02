@@ -10,8 +10,9 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # from models import WSTC
 
 from models import WSTC
-from utils import proceed_level, write_output
+import torch
 from transformers import BertTokenizer
+from utils import write_output
 
 
 if __name__ == "__main__":
@@ -25,19 +26,12 @@ if __name__ == "__main__":
     ### Basic settings ###
     # dataset selection: New York Times (default), arXiv and Yelp Review
     parser.add_argument("--dataset", default="nyt", choices=["nyt", "arxiv", "yelp"])
-    parser.add_argument("--need_step2", default="n", choices=["y", "n"])
-    parser.add_argument("--multihead", default="n", choices=["y", "n"])
     args = parser.parse_args()
     dataset = args.dataset
-    need_step2 = args.need_step2 == "y"
-    use_multihead = args.multihead == "y"
 
     # load preprocessed data
-    import_dirs = [
-        "./" + dataset + d + ".pkl"
-        for d in ["_arg", "_x_input_ids", "_x_attention_masks", "_y"]
-    ]
-    with open(import_dirs[0], "rb") as outp:
+    import_dirs = f"./{dataset}_arg.pkl"
+    with open(import_dirs, "rb") as outp:
         args_dict = pickle.load(outp)
         args = args_dict["args"]
         class_tree = args_dict["class_tree"]
@@ -46,12 +40,12 @@ if __name__ == "__main__":
         pretrain_epochs = args_dict["pretrain_epochs"]
         vocab_sz = args_dict["vocab_sz"]
         word_embedding_dim = args_dict["word_embedding_dim"]
+    import_dirs = f"./{dataset}_x_input_ids.pkl"
     with open(import_dirs[1], "rb") as outp:
         x_input_ids = pickle.load(outp)
+    import_dirs = f"./{dataset}_x_attention_masks.pkl"
     with open(import_dirs[2], "rb") as outp:
         x_attention_masks = pickle.load(outp)
-    with open(import_dirs[3], "rb") as outp:
-        y = pickle.load(outp)
 
     # get pre-train tokenizer
     MODEL_TYPE = "bert-base-uncased"
@@ -69,16 +63,21 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
     )
 
+    # extract proceed_level step 2 here
     for level in range(max_level):
-        proceed_level(
-            wstc=wstc,
-            args=args,
-            pretrain_epochs=pretrain_epochs,
-            class_tree=class_tree,
-            level=level,
-            need_step2=need_step2,
-            use_multihead=use_multihead,
-        )
+        print(f"\n### Proceeding level {level} ###")
+        sup_source = args.sup_source
+        batch_size = args.batch_size
+        parents = class_tree.find_at_level(level)
+        parents_names = [parent.name for parent in parents]
+        print(f"Nodes: {parents_names}")
+
+        for parent in parents:
+            # initialize classifiers in hierarchy
+            print("\n### Input preparation ###")
+            wstc.instantiate(class_tree=parent, use_class_embedding=False)
+            print("\n### Loading back the pre-trained models")
+            parent.model.load_state_dict(torch.load(f"results/bert_{parent.name}.pt"))
 
     y_pred = wstc.ensemble(args, x_input_ids, x_attention_masks, max_level)
 

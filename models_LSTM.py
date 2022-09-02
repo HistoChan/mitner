@@ -8,8 +8,8 @@ from time import time
 import csv
 
 # resolve problem that keras fails to work
-# import tensorflow as tf
-# from tensorflow import keras
+import tensorflow as tf
+from tensorflow import keras
 import tensorflow.keras.backend as K
 
 # from keras.engine.topology import Layer
@@ -32,15 +32,6 @@ from tensorflow.keras.initializers import RandomUniform
 from utils import f1
 from scipy.stats import entropy
 
-from transformers import BertModel, BertPreTrainedModel, BertForSequenceClassification
-from transformers.modeling_outputs import SequenceClassifierOutput
-import torch
-from torch.optim import Adam
-from torch.nn.utils import clip_grad_norm_
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler
-from load_data import load_data_BERT
-from bert_modelling import get_bert_based, Distillator
-
 
 def LSTMLanguageModel(
     input_shape, word_embedding_dim, vocab_sz, hidden_dim, embedding_matrix
@@ -59,6 +50,67 @@ def LSTMLanguageModel(
     model = Model(inputs=x, outputs=z)
     model.summary()
     return Model(inputs=x, outputs=z)
+
+
+def ConvolutionLayer(
+    x,
+    input_shape,
+    n_classes,
+    filter_sizes=[2, 3, 4, 5],
+    num_filters=20,
+    word_trainable=False,
+    vocab_sz=None,
+    embedding_matrix=None,
+    word_embedding_dim=100,
+    hidden_dim=100,
+    act="relu",
+    init="ones",
+):
+    if embedding_matrix is not None:
+        z = Embedding(
+            vocab_sz,
+            word_embedding_dim,
+            input_length=(input_shape,),
+            weights=[embedding_matrix],
+            trainable=word_trainable,
+        )(x)
+    else:
+        z = Embedding(
+            vocab_sz,
+            word_embedding_dim,
+            input_length=(input_shape,),
+            trainable=word_trainable,
+        )(x)
+    conv_blocks = []
+    for sz in filter_sizes:
+        conv = Convolution1D(
+            filters=num_filters,
+            kernel_size=sz,
+            padding="valid",
+            activation=act,
+            strides=1,
+            kernel_initializer=init,
+        )(z)
+        conv = GlobalMaxPooling1D()(conv)
+        conv_blocks.append(conv)
+    z = Concatenate()(conv_blocks) if len(conv_blocks) > 1 else conv_blocks[0]
+    z = Dense(hidden_dim, activation="relu")(z)
+    y = Dense(n_classes, activation="softmax")(z)
+    return Model(inputs=x, outputs=y)
+
+
+def IndexLayer(idx):
+    def func(x):
+        return x[:, idx]
+
+    return Lambda(func)
+
+
+def ExpanLayer(dim):
+    def func(x):
+        return K.expand_dims(x, dim)
+
+    return Lambda(func)
 
 
 class WSTC(object):
@@ -121,7 +173,20 @@ class WSTC(object):
         if num_children <= 1:
             class_tree.model = None
         else:
-            class_tree.model = get_bert_based(num_labels=num_children, type="Bert")
+            class_tree.model = ConvolutionLayer(
+                self.x,
+                self.input_shape[1],
+                filter_sizes=filter_sizes,
+                n_classes=num_children,
+                vocab_sz=self.vocab_sz,
+                embedding_matrix=class_tree.embedding,
+                hidden_dim=hidden_dim,
+                word_embedding_dim=word_embedding_dim,
+                num_filters=num_filters,
+                init=init,
+                word_trainable=word_trainable,
+                act=act,
+            )
 
     def ensemble(self, class_tree, level, input_shape, parent_output):
         print(f"ENTER ensemble with level {level}")
@@ -129,154 +194,61 @@ class WSTC(object):
         print(f"parent_output {parent_output}")
         outputs = []
         if class_tree.model:
-            outputs = class_tree.model
-        # if class_tree.model:
-        #     print("class_tree.model: Ensemble part I")
-        #     # TODO: here
-        #     y_curr = parent_output  # class_tree.model(self.x)
-        #     if parent_output is not None:
-        #         y_curr = Multiply()([parent_output, y_curr])
-        # else:
-        #     y_curr = parent_output
+            print("class_tree.model: Ensemble part I")
+            y_curr = class_tree.model(self.x)
+            print(f"y_curr {y_curr}")
+            if parent_output is not None:
+                y_curr = Multiply()([parent_output, y_curr])
+                print(f"y_curr2 {y_curr}")
+        else:
+            y_curr = parent_output
 
-        # if level == 0:
-        #     outputs.append(y_curr)
-        # else:
-        #     print("level !== 0 Ensemble part II")
-        #     for i, child in enumerate(class_tree.children):
-        #         outputs += self.ensemble(
-        #             child, level - 1, input_shape, None  # IndexLayer(i)(y_curr)
-        #         )
+        if level == 0:
+            outputs.append(y_curr)
+        else:
+            print("level !== 0 Ensemble part II")
+            for i, child in enumerate(class_tree.children):
+                outputs += self.ensemble(
+                    child, level - 1, input_shape, IndexLayer(i)(y_curr)
+                )
         return outputs
 
-    # TODO: Check if change?
     def ensemble_classifier(self, level):
         outputs = self.ensemble(self.class_tree, level, self.input_shape[1], None)
-        # print(f"outputs {outputs}")
-        # outputs = [
-        #     ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
-        #     for output in outputs
-        # ]
-        # print(f"outputs {outputs}")
-        # z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
-        # return Model(inputs=self.x, outputs=z)
-        return outputs
+        print(f"outputs {outputs}")
+        outputs = [
+            ExpanLayer(-1)(output) if len(output.get_shape()) < 2 else output
+            for output in outputs
+        ]
+        print(f"outputs {outputs}")
+        z = Concatenate()(outputs) if len(outputs) > 1 else outputs[0]
+        model = Model(inputs=self.x, outputs=z)
+        print(f"*******************Summary********************")
+        model.summary()
+        return model
 
-    # TODO: LSTM to BERTensemble_classifier
-    # Since the BERT Classifier is already pre-trained, this part would be
-    # fine-tuning the BERT Classifier
     def pretrain(
         self,
         x,
         pretrain_labels,
         model,
-        optimizer="adam",  # not use this one
-        loss="kld",  # not use this one
+        optimizer="adam",
+        loss="kld",
         epochs=200,
         batch_size=256,
         save_dir=None,
         suffix="",
     ):
-        # import torch
 
-        # param_groups = torch.load(f"{save_dir}/pretrained_bert_{suffix}.pt")
-        # from bert_modelling import get_bert_based, load_bert_parameters
-
-        # model = get_bert_based()
-        # model = load_bert_parameters(model, param_groups)
-
-        """Testing end here"""
-
-        optimizer = Adam(model.parameters(), lr=1e-5)
-        epochs = 3  # TODO: not hard code
-        batch_size = 16  # TODO: not hard code
-
-        # input tensors
-        tokenizer = self.tokenizer
-        tokenizer, input_ids, attention_masks = load_data_BERT(x, tokenizer)
-
-        is_hard_label = False
-        if is_hard_label:
-            # output tensors
-            labels = torch.tensor(np.argmax(pretrain_labels, axis=1).flatten())
-        else:
-            labels = torch.tensor(pretrain_labels)
-
-        # Pack up as a dataset
-        dataset = TensorDataset(input_ids, attention_masks, labels)
-        train_dataloader = DataLoader(
-            dataset, sampler=RandomSampler(dataset), batch_size=batch_size
-        )
-
-        # Tell pytorch to run this model.
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("device:", device)
-        model = model.to(device)
-
+        model.compile(optimizer=optimizer, loss=loss)
         t0 = time()
         print("\nPretraining...")
-        for epoch_i in range(epochs):
-            total_train_loss = 0
-            #               Training
-            # Perform one full pass over the training set.
-            print("\n======== Epoch {:} / {:} ========".format(epoch_i + 1, epochs))
-            # For each batch of training data...
-            for step, batch in enumerate(train_dataloader):
-                # TODO: Debug
-                if step >= batch_size:
-                    break
-                # Progress update.
-                if step % batch_size == 0 and not step == 0:
-                    # Report progress.
-                    print(
-                        "  Batch {:>5,}  of  {:>5,}.".format(
-                            step, len(train_dataloader)
-                        )
-                    )
-
-                batch_input_ids = batch[0].to(device)
-                batch_input_mask = batch[1].to(device)
-                batch_labels = batch[2].to(device)
-
-                # Always clear any previously calculated gradients before performing a backward pass.
-                model.zero_grad()
-
-                outputs = model(
-                    batch_input_ids,
-                    token_type_ids=None,
-                    attention_mask=batch_input_mask,
-                    labels=batch_labels,
-                )
-                loss = outputs[0]
-                # Perform a backward pass to calculate the gradients.
-                loss.backward()
-                total_train_loss += loss.item()
-
-                # Clip the norm of the gradients to 1.0.
-                # This is to help prevent the "exploding gradients" problem.
-                clip_grad_norm_(model.parameters(), 1.0)
-
-                # Update parameters and take a step using the computed gradient.
-                optimizer.step()
-
-            # Calculate the average loss over all of the batches.
-            avg_train_loss = total_train_loss / len(train_dataloader)
-
-            # Measure how long this epoch took.
-            print("  Average training loss: {0:.2f}".format(avg_train_loss))
-            print(f"Pretraining time: {time() - t0:.2f}s")
-            # model.fit(x, pretrain_labels, batch_size=batch_size, epochs=epochs)
+        model.fit(x, pretrain_labels, batch_size=batch_size, epochs=epochs)
+        print(f"Pretraining time: {time() - t0:.2f}s")
         if save_dir is not None:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
-            torch.save(model.state_dict(), f"{save_dir}/pretrained_bert_{suffix}.pt")
-
-    def load_weights(self, weights, level):
-        print(f"Loading weights @ level {level}")
-        self.model[level].load_weights(weights)
-
-    def load_pretrain(self, weights, model):
-        model.load_weights(weights)
+            model.save_weights(f"{save_dir}/pretrained_{suffix}.h5")
 
     def extract_label(self, y, level):
         if type(level) is int:
@@ -409,132 +381,19 @@ class WSTC(object):
         # print(f"\nLevel {level} model summary: ")
         # self.model[level].summary()
 
-    def distill(
-        self,
-        x,
-        save_dir=None,
-        suffix="",
-    ):
-        print("Initializing knowledge distillation...")
-        distillator = Distillator(self.model[0], temperature=2.0)
-        num_labels = self.model[0].config.num_labels
-
-        optimizer = Adam(distillator.student.parameters(), lr=1e-5)
-        epochs = 3  # TODO: not hard code
-        batch_size = 16  # TODO: not hard code
-
-        # input tensors
-        tokenizer = self.tokenizer
-        tokenizer, input_ids, attention_masks = load_data_BERT(x, tokenizer)
-
-        # Pack up as a dataset
-        dataset = TensorDataset(input_ids, attention_masks)
-        train_dataloader = DataLoader(
-            dataset, sampler=RandomSampler(dataset), batch_size=batch_size
-        )
-
-        # Tell pytorch to run this model.
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("device:", device)
-
-        t0 = time()
-        print("\nPretraining...")
-        for epoch_i in range(epochs):
-            # Tell pytorch to run this model.
-            distillator.student = distillator.student.to(device)
-            total_train_loss = 0
-            #               Training
-            # Perform one full pass over the training set.
-            print("\n======== Epoch {:} / {:} ========".format(epoch_i + 1, epochs))
-            # For each batch of training data...
-            for step, batch in enumerate(train_dataloader):
-                # TODO: Debug
-                if step > batch_size:
-                    break
-                # Progress update.
-                if step % batch_size == 0 and not step == 0:
-                    # Report progress.
-                    print(
-                        "  Batch {:>5,}  of  {:>5,}.".format(
-                            step, len(train_dataloader)
-                        )
-                    )
-
-                batch_input_ids = batch[0].to(device)
-                batch_input_mask = batch[1].to(device)
-                # batch_labels = batch[2].to(device)
-
-                # Always clear any previously calculated gradients before performing a backward pass.
-                distillator.student.zero_grad()
-
-                distillator.teacher.eval()
-                teacher_outputs = distillator.teacher(
-                    batch_input_ids,
-                    attention_mask=batch_input_mask,
-                )
-                teacher_logits = teacher_outputs[0]
-
-                distillator.student.train()
-                student_outputs = distillator.student(
-                    batch_input_ids,
-                    attention_mask=batch_input_mask,
-                    labels=teacher_logits.softmax(1),  # TODO: check this
-                )
-                student_logits = student_outputs[1]
-                print("loss1", student_outputs[0])
-                loss = distillator.distillation_loss(teacher_logits, student_logits)
-                print("loss2", loss)
-
-                # Perform a backward pass to calculate the gradients.
-                loss.backward()
-                total_train_loss += loss.item()
-
-                # Clip the norm of the gradients to 1.0.
-                # This is to help prevent the "exploding gradients" problem.
-                clip_grad_norm_(distillator.student.parameters(), 1.0)
-
-                # Update parameters and take a step using the computed gradient.
-                optimizer.step()
-
-            # Calculate the average loss over all of the batches.
-            avg_train_loss = total_train_loss / len(train_dataloader)
-
-            # Measure how long this epoch took.
-            print("  Average training loss: {0:.2f}".format(avg_train_loss))
-            print(f"Pretraining time: {time() - t0:.2f}s")
-
-            # Update teacher
-            distillator.teacher = distillator.student
-            # for the last epoch, use DisilBert to minimize the size
-            new_student_type = "DistilBert" if epochs - 2 == epoch_i else "Bert"
-            distillator.student = get_bert_based(
-                num_labels=num_labels, type=new_student_type
-            )
-
-        if save_dir is not None:
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            torch.save(
-                distillator.student.state_dict(),
-                f"{save_dir}/self-trained_bert_{suffix}.pt",
-            )
-        pass
-
     def fit(
         self,
         x,
         level,
         maxiter=5e4,
         batch_size=256,
-        tol=0.25,  # 0.1
+        tol=3,  # 0.1
         power=2,
         update_interval=100,
         save_dir=None,
         save_suffix="",
     ):
-        print("fitting...")
-
-        """model = self.model[level]
+        model = self.model[level]
         print(f"Update interval: {update_interval}")
 
         cur_idx = np.array(
@@ -670,7 +529,6 @@ class WSTC(object):
                         print(
                             f"Fraction of documents with label changes: {np.round(delta_label/y_pred.shape[0]*100, 3)} %"
                         )
-
                         if delta_label / y_pred.shape[0] < tol / 100:
                             print(
                                 f"\nFraction: {np.round(delta_label / y_pred.shape[0] * 100, 3)} % < tol: {tol} %"
@@ -716,4 +574,4 @@ class WSTC(object):
             q_all = np.concatenate((q_all, q_i), axis=1)
         y_pred_agg = self.aggregate_pred(q_all, level, block_idx, cur_idx)
         self.record_block(block_idx, y_pred_agg)
-        return y_pred_agg"""
+        return y_pred_agg

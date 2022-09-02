@@ -8,7 +8,8 @@ class ClassNode(object):
         self.expanded = []
         self.doc_idx = []
         self.model = None
-        self.embedding = None
+        self.embedding = None  # embedding for LSTM
+        self.embedding_BERT = None
         self.sup_idx = []
 
     def add_child(self, node):
